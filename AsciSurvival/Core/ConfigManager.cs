@@ -21,6 +21,7 @@ namespace AsciSurvival.Core
         public int RenderDistance { get; set; } = 50;
         public float Brightness { get; set; } = 1.0f;
         public string FontPath { get; set; } = "Data/fonts/ascii_font.png";
+        public int FpsLimit { get; set; } = 60; // Ограничитель FPS (30/45/60/75/90/120)
     }
 
     public class ControlSettings
