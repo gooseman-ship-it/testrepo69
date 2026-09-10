@@ -297,14 +297,14 @@ namespace AsciSurvival.Rendering
             float fovRad = Fovy * MathF.PI / 180f;
             float cellWorldSizeAtDist = (distToCamera * MathF.Tan(fovRad * 0.5f) * 2f) / GridHeight;
             
-            // Шаг не крупнее половины мировой величины клетки на этой дистанции
-            float maxStepSize = cellWorldSizeAtDist * 0.5f;
+            // Шаг не крупнее трети мировой величины клетки на этой дистанции для гарантии сплошности
+            float maxStepSize = cellWorldSizeAtDist * 0.3f;
             
             // Адаптивное количество шагов: минимум 10, максимум исходя из длины
             int steps = Math.Max(10, (int)(lineLength / maxStepSize));
             
-            // Ограничиваем максимум для производительности
-            steps = Math.Min(steps, 200);
+            // Ограничиваем максимум для производительности (4000 шагов достаточно для длинных линий)
+            steps = Math.Min(steps, 4000);
             
             for (int i = 0; i <= steps; i++)
             {
