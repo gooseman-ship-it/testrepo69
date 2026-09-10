@@ -18,18 +18,24 @@ namespace AsciSurvival.Rendering
         public float MoveSpeed = 5.0f;
         public float SprintMultiplier = 1.8f;
         
+        // Высота глаз: стоя и в приседе
+        public const float EyeHeightStanding = 2.0f;
+        public const float EyeHeightCrouching = 1.2f;
+        
         private float _pitch = 0.0f;
         private float _yaw = 0.0f;
         private float _verticalVelocity = 0.0f;
         private bool _isGrounded = false;
+        private bool _isCrouching = false;
+        private float _currentEyeHeight = EyeHeightStanding;
 
         // Константа для перевода градусов в радианы (совместима с .NET 8)
         private const float Deg2Rad = MathF.PI / 180.0f;
 
         public Camera3D()
         {
-            Position = new Vector3(0, 2, 10);
-            Target = new Vector3(0, 2, 9);
+            Position = new Vector3(0, EyeHeightStanding, 10);
+            Target = new Vector3(0, EyeHeightStanding, 9);
             Up = new Vector3(0, 1, 0);
             Fovy = 60.0f;
             Projection = CameraProjection.CAMERA_PERSPECTIVE;
@@ -75,7 +81,19 @@ namespace AsciSurvival.Rendering
             
             if (sprintKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(sprintKey)) 
                 speed *= SprintMultiplier;
-            if (crouchKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(crouchKey)) 
+            
+            // Обработка приседания: сглаженное переключение высоты глаз и замедление
+            bool wantCrouch = crouchKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(crouchKey);
+            if (wantCrouch != _isCrouching)
+            {
+                _isCrouching = wantCrouch;
+            }
+            
+            // Плавное изменение высоты глаз (линейная интерполяция)
+            float targetEyeHeight = _isCrouching ? EyeHeightCrouching : EyeHeightStanding;
+            _currentEyeHeight = _currentEyeHeight + (targetEyeHeight - _currentEyeHeight) * deltaTime * 10f;
+            
+            if (_isCrouching)
                 speed *= 0.5f;
 
             Vector3 forward = new Vector3(MathF.Sin(_yaw * Deg2Rad), 0, MathF.Cos(_yaw * Deg2Rad));
@@ -96,16 +114,16 @@ namespace AsciSurvival.Rendering
             _verticalVelocity -= 20.0f * deltaTime;
             Position = new Vector3(Position.X, Position.Y + _verticalVelocity * deltaTime, Position.Z);
 
-            if (Position.Y < 2.0f) 
+            if (Position.Y < EyeHeightStanding) 
             {
-                Position = new Vector3(Position.X, 2.0f, Position.Z);
+                Position = new Vector3(Position.X, EyeHeightStanding, Position.Z);
                 _verticalVelocity = 0;
                 _isGrounded = true;
             }
 
             Target = new Vector3(
                 Position.X + MathF.Sin(_yaw * Deg2Rad) * MathF.Cos(_pitch * Deg2Rad),
-                Position.Y + MathF.Sin(_pitch * Deg2Rad),
+                Position.Y + _currentEyeHeight + MathF.Sin(_pitch * Deg2Rad),
                 Position.Z + MathF.Cos(_yaw * Deg2Rad) * MathF.Cos(_pitch * Deg2Rad)
             );
 

@@ -10,8 +10,8 @@ namespace AsciSurvival.Rendering
     /// </summary>
     public class AsciiRenderCore
     {
-        // Символьная рампа от тёмного к светлому
-        private const string SymbolRamp = " .:-=+*#%@";
+        /// Символьная рампа от тёмного к светлому (только ASCII, коды 32..126, не менее 24 символов)
+        private const string SymbolRamp = " .'-:;~=+*<>!?|()[]{}#%@$&";
         
         // Разрешение сетки символов (фиксированное количество клеток)
         public int GridWidth { get; } = 160;
@@ -28,14 +28,14 @@ namespace AsciSurvival.Rendering
         // Буферы
         private float[] _zBuffer;
         private char[] _symbolGrid;
-        private ushort[] _colorGrid;
+        private uint[] _colorGrid;  // 32-бит ARGB8888
         
         public AsciiRenderCore()
         {
             int size = GridWidth * GridHeight;
             _zBuffer = new float[size];
             _symbolGrid = new char[size];
-            _colorGrid = new ushort[size];
+            _colorGrid = new uint[size];
         }
         
         /// <summary>
@@ -172,56 +172,46 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Квантование цвета в RGB565 (16 бит)
-        /// Формат: RRRRR GGGGGG BBBBB (5-6-5 бит)
+        /// Упаковка цвета в 32-бит ARGB8888
+        /// Формат: AAAAAAAA RRRRRRRR GGGGGGGG BBBBBBBB
         /// </summary>
-        public ushort QuantizeToRGB565(Color color)
+        public static uint PackARGB32(byte a, byte r, byte g, byte b)
         {
-            // Квантование: R и B по 5 бит (0-31), G по 6 бит (0-63)
-            byte r5 = (byte)((color.r >> 3) & 0x1F);
-            byte g6 = (byte)((color.g >> 2) & 0x3F);
-            byte b5 = (byte)((color.b >> 3) & 0x1F);
-            
-            // Упаковка в 16 бит: RRRRRGGGGGGBBBBB
-            return (ushort)((r5 << 11) | (g6 << 5) | b5);
+            return (uint)((a << 24) | (r << 16) | (g << 8) | b);
         }
         
         /// <summary>
-        /// Декодирование RGB565 обратно в Color (для отладки/рендера)
+        /// Распаковка 32-бит ARGB8888 в Color
         /// </summary>
-        public static Color DequantizeFromRGB565(ushort rgb565)
+        public static Color UnpackARGB32(uint argb)
         {
-            byte r5 = (byte)((rgb565 >> 11) & 0x1F);
-            byte g6 = (byte)((rgb565 >> 5) & 0x3F);
-            byte b5 = (byte)(rgb565 & 0x1F);
-            
-            // Масштабирование обратно к 8 битам
-            byte r8 = (byte)((r5 * 255) / 31);
-            byte g8 = (byte)((g6 * 255) / 63);
-            byte b8 = (byte)((b5 * 255) / 31);
-            
-            return new Color((int)r8, (int)g8, (int)b8, 255);
+            byte a = (byte)((argb >> 24) & 0xFF);
+            byte r = (byte)((argb >> 16) & 0xFF);
+            byte g = (byte)((argb >> 8) & 0xFF);
+            byte b = (byte)(argb & 0xFF);
+            return new Color((int)r, (int)g, (int)b, (int)a);
         }
         
         /// <summary>
         /// Вычисление цвета на основе глубины и базового цвета объекта
+        /// Возвращает упакованный 32-бит ARGB8888
         /// </summary>
-        public ushort GetCellColor(float depth, Color baseColor, float brightness = 1.0f)
+        public uint GetCellColor(float depth, Color baseColor, float brightness = 1.0f)
         {
             // Затухание с глубиной
             float depthFade = Clamp(1f - (depth - NearPlane) / (FarPlane - NearPlane) * 0.5f, 0.3f, 1f);
             
-            // Применяем яркость
+            // Применяем яркость с BrightnessMultiplier
             float intensity = brightness * BrightnessMultiplier * depthFade;
+            intensity = Clamp(intensity, 0f, 1f);
             
-            Color modulated = new Color(
-                (int)(baseColor.r * intensity),
-                (int)(baseColor.g * intensity),
-                (int)(baseColor.b * intensity),
-                255
-            );
+            // Модулируем каждый канал с клампом 0..255
+            int r = Clamp((int)(baseColor.r * intensity), 0, 255);
+            int g = Clamp((int)(baseColor.g * intensity), 0, 255);
+            int b = Clamp((int)(baseColor.b * intensity), 0, 255);
+            byte a = 255;  // Полностью непрозрачный
             
-            return QuantizeToRGB565(modulated);
+            return PackARGB32(a, (byte)r, (byte)g, (byte)b);
         }
         
         /// <summary>
@@ -242,11 +232,11 @@ namespace AsciSurvival.Rendering
         
         /// <summary>
         /// Построение строки кадра для заданной строки сетки
-        /// Возвращает строку символов и массив цветов для этой строки
+        /// Возвращает строку символов и массив цветов (ARGB32) для этой строки
         /// </summary>
-        public string BuildLine(int y, out ushort[] lineColors)
+        public string BuildLine(int y, out uint[] lineColors)
         {
-            lineColors = new ushort[GridWidth];
+            lineColors = new uint[GridWidth];
             char[] lineBuffer = new char[GridWidth];
             
             for (int x = 0; x < GridWidth; x++)
@@ -270,9 +260,9 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Получить цвет для клетки (RGB565)
+        /// Получить цвет для клетки (ARGB32)
         /// </summary>
-        public ushort GetGridColor(int x, int y)
+        public uint GetGridColor(int x, int y)
         {
             if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
                 return 0;
@@ -285,9 +275,9 @@ namespace AsciSurvival.Rendering
         public char[] GetSymbolArray() => (char[])_symbolGrid.Clone();
         
         /// <summary>
-        /// Получить весь массив цветов (RGB565) для анализа
+        /// Получить весь массив цветов (ARGB32) для анализа
         /// </summary>
-        public ushort[] GetColorArray() => (ushort[])_colorGrid.Clone();
+        public uint[] GetColorArray() => (uint[])_colorGrid.Clone();
         
         /// <summary>
         /// Рендер линии между двумя точками (алгоритм Брезенхема 3D)
