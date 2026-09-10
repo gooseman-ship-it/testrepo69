@@ -38,12 +38,12 @@ namespace AsciSurvival.Core
         {
             if (capture)
             {
-                Raylib.HideCursor();
+                Raylib.DisableCursor();
                 Raylib.SetMousePosition(Raylib.GetScreenWidth() / 2, Raylib.GetScreenHeight() / 2);
             }
             else
             {
-                Raylib.ShowCursor();
+                Raylib.EnableCursor();
             }
         }
 
