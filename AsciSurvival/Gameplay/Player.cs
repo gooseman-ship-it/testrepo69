@@ -36,7 +36,12 @@ namespace AsciSurvival.Gameplay
             // Ограничения параметров
             Hunger = MathF.Max(0, Hunger);
             Thirst = MathF.Max(0, Thirst);
-            Temperature = MathF.Clamp(Temperature, 30.0f, 42.0f);
+            Temperature = Clamp(Temperature, 30.0f, 42.0f);
+        }
+
+        private static float Clamp(float value, float min, float max)
+        {
+            return (value < min) ? min : (value > max) ? max : value;
         }
     }
 }

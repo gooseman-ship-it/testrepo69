@@ -6,19 +6,19 @@ namespace AsciSurvival.Core
 {
     public class Game : System.IDisposable
     {
-        private Rendering.Camera3D _camera;
-        private Player _player;
-        private AsciiRenderer _renderer;
+        private Rendering.Camera3D? _camera;
+        private Player? _player;
+        private AsciiRenderer? _renderer;
         private bool _isDisposed = false;
 
         public void Initialize()
         {
-            _camera = new Camera3D();
+            _camera = new Rendering.Camera3D();
             _player = new Player();
             _renderer = new AsciiRenderer(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
             
             // Отключаем стандартный выход по ESC, чтобы обрабатывать его самим
-            Raylib.SetExitKey(KeyboardKey.Null);
+            Raylib.SetExitKey(KeyboardKey.KEY_NULL);
         }
 
         public void Update(float deltaTime)
@@ -34,7 +34,7 @@ namespace AsciSurvival.Core
                 return;
             }
 
-            if (!InputManager.IsMenuOpen)
+            if (!InputManager.IsMenuOpen && _player != null && _camera != null)
             {
                 _player.Update(deltaTime, _camera);
             }
@@ -42,10 +42,10 @@ namespace AsciSurvival.Core
 
         public void Draw()
         {
-            if (_isDisposed) return;
+            if (_isDisposed || _renderer == null || _camera == null || _player == null) return;
 
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.Black);
+            Raylib.ClearBackground(Color.BLACK);
 
             _renderer.Render(_camera, _player.Position);
 
@@ -57,18 +57,19 @@ namespace AsciSurvival.Core
         private void DrawHUD()
         {
             int fontSize = 20;
-            Color textColor = Color.White;
             
-            Raylib.DrawText($"HP: {_player.Health:F0}", 10, 10, fontSize, Color.Green);
-            Raylib.DrawText($"Temp: {_player.Temperature:F1}C", 10, 35, fontSize, Color.SkyBlue);
-            Raylib.DrawText($"Hunger: {_player.Hunger:F0}", 10, 60, fontSize, Color.Orange);
-            Raylib.DrawText($"Thirst: {_player.Thirst:F0}", 10, 85, fontSize, Color.Blue);
-            Raylib.DrawText($"FPS: {Raylib.GetFPS()}", Raylib.GetScreenWidth() - 60, 10, fontSize, Color.Gray);
+            if (_player == null) return;
+            
+            Raylib.DrawText($"HP: {_player.Health:F0}", 10, 10, fontSize, Color.GREEN);
+            Raylib.DrawText($"Temp: {_player.Temperature:F1}C", 10, 35, fontSize, Color.SKYBLUE);
+            Raylib.DrawText($"Hunger: {_player.Hunger:F0}", 10, 60, fontSize, Color.ORANGE);
+            Raylib.DrawText($"Thirst: {_player.Thirst:F0}", 10, 85, fontSize, Color.BLUE);
+            Raylib.DrawText($"FPS: {Raylib.GetFPS()}", Raylib.GetScreenWidth() - 60, 10, fontSize, Color.GRAY);
             
             if (InputManager.IsMenuOpen)
             {
                 Raylib.DrawRectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight(), new Color(0, 0, 0, 180));
-                Raylib.DrawText("MENU (TAB to close)", Raylib.GetScreenWidth() / 2 - 100, Raylib.GetScreenHeight() / 2, 30, Color.White);
+                Raylib.DrawText("MENU (TAB to close)", Raylib.GetScreenWidth() / 2 - 100, Raylib.GetScreenHeight() / 2, 30, Color.WHITE);
             }
         }
 

@@ -1,38 +1,41 @@
 ```
 # Build artifacts
-obj/
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
 bin/
-*.csproj.nuget.dgspec.json
-*.csproj.nuget.g.props
-*.csproj.nuget.g.targets
-*.AssemblyInfo.cs
-*.AssemblyInfoInputs.cache
-*.GeneratedMSBuildEditorConfig.editorconfig
-*.GlobalUsings.g.cs
-*.assets.cache
-*.AssemblyReference.cache
-*.CoreCompileInputs.cache
-*.FileListAbsolute.txt
-project.assets.json
-project.nuget.cache
+obj/
+Debug/
+Release/
 
 # Dependencies
 packages/
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.egg-info/
 
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
+# Editor/IDE files
+.vs/
 .idea/
+*.userprefs
+*.user
+*.suo
+*.csproj.user
+*.userosscache
+*.sln.docstates
 
-# OS generated files
+# OS files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+
+# Configuration
+*.userprefs
 ```

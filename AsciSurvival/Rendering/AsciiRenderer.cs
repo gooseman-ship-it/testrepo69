@@ -47,7 +47,9 @@ namespace AsciSurvival.Rendering
         {
             if (!_isDisposed)
             {
-                if (_font.Id != Raylib.GetFontDefault().Id)
+                // Проверяем, что шрифт не дефолтный (по id текстуры)
+                Font defaultFont = Raylib.GetFontDefault();
+                if (_font.texture.id != defaultFont.texture.id)
                 {
                     Raylib.UnloadFont(_font);
                 }
