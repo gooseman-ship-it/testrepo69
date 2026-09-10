@@ -79,9 +79,9 @@ namespace AsciSurvival.Rendering
             for (int y = 0; y < _core.GridHeight; y++)
             {
                 // Используем общий метод ядра для построения строки
-                string line = _core.BuildLine(y, out ushort[] lineColors);
+                string line = _core.BuildLine(y, out uint[] lineColors);
 
-                // Run-length батчинг: последовательные клетки одинакового RGB565 рисуются одним DrawTextEx
+                // Run-length батчинг: последовательные клетки одинакового ARGB32 рисуются одним DrawTextEx
                 int x = 0;
                 while (x < _core.GridWidth)
                 {
@@ -93,7 +93,7 @@ namespace AsciSurvival.Rendering
                     }
 
                     // Находим конец последовательности с одинаковым цветом
-                    ushort currentColor = lineColors[x];
+                    uint currentColor = lineColors[x];
                     int runLength = 1;
                     while (x + runLength < _core.GridWidth && lineColors[x + runLength] == currentColor)
                     {
@@ -103,8 +103,8 @@ namespace AsciSurvival.Rendering
                     // Извлекаем подстроку для этого отрезка
                     string runText = line.Substring(x, runLength);
 
-                    // Декодируем цвет из RGB565
-                    Color drawColor = AsciiRenderCore.DequantizeFromRGB565(currentColor);
+                    // Декодируем цвет из ARGB32
+                    Color drawColor = AsciiRenderCore.UnpackARGB32(currentColor);
 
                     // Позиционирование по cellWidth явно
                     int posX = (int)(x * cellWidth);
