@@ -1,6 +1,7 @@
 using Raylib_cs;
 using AsciSurvival.Rendering;
 using AsciSurvival.Gameplay;
+using System.Numerics;
 
 namespace AsciSurvival.Core
 {
@@ -64,7 +65,12 @@ namespace AsciSurvival.Core
             Raylib.DrawText($"Temp: {_player.Temperature:F1}C", 10, 35, fontSize, Color.SKYBLUE);
             Raylib.DrawText($"Hunger: {_player.Hunger:F0}", 10, 60, fontSize, Color.ORANGE);
             Raylib.DrawText($"Thirst: {_player.Thirst:F0}", 10, 85, fontSize, Color.BLUE);
-            Raylib.DrawText($"FPS: {Raylib.GetFPS()}", Raylib.GetScreenWidth() - 60, 10, fontSize, Color.GRAY);
+            
+            // FPS с отступом через MeasureText, чтобы не выходил за правый край
+            string fpsText = $"FPS: {Raylib.GetFPS()}";
+            Vector2 fpsSize = Raylib.MeasureTextEx(Raylib.GetFontDefault(), fpsText, fontSize, 1.0f);
+            int fpsX = Raylib.GetScreenWidth() - (int)fpsSize.X - 10;
+            Raylib.DrawText(fpsText, fpsX, 10, fontSize, Color.GRAY);
             
             if (InputManager.IsMenuOpen)
             {

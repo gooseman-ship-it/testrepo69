@@ -34,24 +34,32 @@ namespace AsciSurvival.Rendering
         {
             if (_isDisposed) return;
 
-            // Очистка Z-буфера ядра рендерера
-            _core.ClearZBuffer();
+            // Очистка всех буферов кадра (символы, цвета, Z-буфер)
+            _core.ClearFrame();
 
             // Рендеринг тестовой сцены: сетка пола, боксы, сферы
-            // Сетка пола (20x20, 20 делений)
-            _core.RenderGrid(20f, 20, camera, Color.GREEN, 0.8f);
-
-            // Коробки разных цветов и размеров
-            _core.RenderBox(new Vector3(-5, 2, -5), 3f, camera, Color.RED, 1.0f);
-            _core.RenderBox(new Vector3(5, 3, -3), 4f, camera, Color.BLUE, 1.0f);
-            _core.RenderBox(new Vector3(0, 1, -8), 2f, camera, Color.YELLOW, 1.0f);
-
-            // Сферы
-            _core.RenderSphere(new Vector3(-8, 2, 3), 2f, camera, Color.PURPLE, 1.0f);
-            _core.RenderSphere(new Vector3(8, 3, 5), 2.5f, camera, Color.ORANGE, 1.0f);
+            RenderTestScene(_core, camera);
 
             // Отрисовка ASCII-сетки на экране через батчинг символов
             DrawAsciiGrid();
+        }
+
+        /// <summary>
+        /// Рендер тестовой сцены (общий метод для игрового рендера и headless)
+        /// </summary>
+        public static void RenderTestScene(AsciiRenderCore core, Camera3D camera)
+        {
+            // Сетка пола (20x20, 20 делений)
+            core.RenderGrid(20f, 20, camera, Color.GREEN, 0.8f);
+
+            // Коробки разных цветов и размеров
+            core.RenderBox(new Vector3(-5, 2, -5), 3f, camera, Color.RED, 1.0f);
+            core.RenderBox(new Vector3(5, 3, -3), 4f, camera, Color.BLUE, 1.0f);
+            core.RenderBox(new Vector3(0, 1, -8), 2f, camera, Color.YELLOW, 1.0f);
+
+            // Сферы
+            core.RenderSphere(new Vector3(-8, 2, 3), 2f, camera, Color.PURPLE, 1.0f);
+            core.RenderSphere(new Vector3(8, 3, 5), 2.5f, camera, Color.ORANGE, 1.0f);
         }
 
         /// <summary>
@@ -65,42 +73,48 @@ namespace AsciSurvival.Rendering
             float cellWidth = (float)screenWidth / _core.GridWidth;
             float cellHeight = (float)screenHeight / _core.GridHeight;
 
-            // Размер шрифта подбирается под высоту клетки
+            // Размер шрифта подбирается из метрик шрифта, а не приравнивается к cellHeight
             int fontSize = (int)MathF.Max(8f, cellHeight);
-
-            // Буфер для построения строки
-            char[] lineBuffer = new char[_core.GridWidth];
 
             for (int y = 0; y < _core.GridHeight; y++)
             {
-                // Формируем строку символов
-                for (int x = 0; x < _core.GridWidth; x++)
-                {
-                    lineBuffer[x] = _core.GetGridSymbol(x, y);
-                }
+                // Используем общий метод ядра для построения строки
+                string line = _core.BuildLine(y, out ushort[] lineColors);
 
-                string line = new string(lineBuffer);
-
-                // Получаем цвет клетки (для простоты берём усреднённый по строке)
-                // В полной реализации можно делать градиент или использовать текстуру
-                ushort avgColor = 0;
-                int colorCount = 0;
-                for (int x = 0; x < _core.GridWidth; x++)
+                // Run-length батчинг: последовательные клетки одинакового RGB565 рисуются одним DrawTextEx
+                int x = 0;
+                while (x < _core.GridWidth)
                 {
-                    ushort c = _core.GetGridColor(x, y);
-                    if (c != 0)
+                    // Пропускаем пустые клетки (пробелы без цвета)
+                    if (lineColors[x] == 0)
                     {
-                        avgColor = c;
-                        colorCount++;
+                        x++;
+                        continue;
                     }
+
+                    // Находим конец последовательности с одинаковым цветом
+                    ushort currentColor = lineColors[x];
+                    int runLength = 1;
+                    while (x + runLength < _core.GridWidth && lineColors[x + runLength] == currentColor)
+                    {
+                        runLength++;
+                    }
+
+                    // Извлекаем подстроку для этого отрезка
+                    string runText = line.Substring(x, runLength);
+
+                    // Декодируем цвет из RGB565
+                    Color drawColor = AsciiRenderCore.DequantizeFromRGB565(currentColor);
+
+                    // Позиционирование по cellWidth явно
+                    int posX = (int)(x * cellWidth);
+                    int posY = (int)(y * cellHeight);
+
+                    // Рисуем отрезок строки с точной позицией
+                    Raylib.DrawText(runText, posX, posY, fontSize, drawColor);
+
+                    x += runLength;
                 }
-
-                Color drawColor = colorCount > 0 
-                    ? AsciiRenderCore.DequantizeFromRGB565(avgColor) 
-                    : Color.WHITE;
-
-                // Рисуем строку одним вызовом (батчинг)
-                Raylib.DrawText(line, 0, (int)(y * cellHeight), fontSize, drawColor);
             }
         }
 

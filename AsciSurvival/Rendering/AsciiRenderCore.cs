@@ -39,8 +39,23 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Очистка Z-буфера максимальным значением
+        /// Очистка всех буферов кадра: Z-буфер, символы (пробелы), цвета
+        /// Вызывается КАЖДЫЙ кадр перед рендерингом
         /// </summary>
+        public void ClearFrame()
+        {
+            for (int i = 0; i < _zBuffer.Length; i++)
+            {
+                _zBuffer[i] = float.MaxValue;
+                _symbolGrid[i] = ' ';
+                _colorGrid[i] = 0;
+            }
+        }
+        
+        /// <summary>
+        /// Устаревший метод, оставлен для совместимости
+        /// </summary>
+        [Obsolete("Используйте ClearFrame() вместо ClearZBuffer()")]
         public void ClearZBuffer()
         {
             for (int i = 0; i < _zBuffer.Length; i++)
@@ -226,6 +241,25 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
+        /// Построение строки кадра для заданной строки сетки
+        /// Возвращает строку символов и массив цветов для этой строки
+        /// </summary>
+        public string BuildLine(int y, out ushort[] lineColors)
+        {
+            lineColors = new ushort[GridWidth];
+            char[] lineBuffer = new char[GridWidth];
+            
+            for (int x = 0; x < GridWidth; x++)
+            {
+                int index = y * GridWidth + x;
+                lineBuffer[x] = _symbolGrid[index];
+                lineColors[x] = _colorGrid[index];
+            }
+            
+            return new string(lineBuffer);
+        }
+        
+        /// <summary>
         /// Получить символ для клетки
         /// </summary>
         public char GetGridSymbol(int x, int y)
@@ -257,10 +291,31 @@ namespace AsciSurvival.Rendering
         
         /// <summary>
         /// Рендер линии между двумя точками (алгоритм Брезенхема 3D)
+        /// Количество шагов адаптивное — от длины линии и дистанции до камеры
         /// </summary>
         public void RenderLine(Vector3 start, Vector3 end, Camera3D camera, Color color, float brightness = 1.0f)
         {
-            int steps = 50; // Количество шагов дискретизации линии
+            // Вычисляем длину линии в мировом пространстве
+            float lineLength = Vector3.Distance(start, end);
+            
+            // Вычисляем среднюю дистанцию до камеры для определения плотности шагов
+            Vector3 midPoint = (start + end) * 0.5f;
+            float distToCamera = Vector3.Distance(midPoint, camera.Position);
+            
+            // Мировая величина клетки на этой дистанции (примерно)
+            // Чем дальше объект, тем больше его проекция на сетку
+            float fovRad = Fovy * MathF.PI / 180f;
+            float cellWorldSizeAtDist = (distToCamera * MathF.Tan(fovRad * 0.5f) * 2f) / GridHeight;
+            
+            // Шаг не крупнее половины мировой величины клетки на этой дистанции
+            float maxStepSize = cellWorldSizeAtDist * 0.5f;
+            
+            // Адаптивное количество шагов: минимум 10, максимум исходя из длины
+            int steps = Math.Max(10, (int)(lineLength / maxStepSize));
+            
+            // Ограничиваем максимум для производительности
+            steps = Math.Min(steps, 200);
+            
             for (int i = 0; i <= steps; i++)
             {
                 float t = (float)i / steps;

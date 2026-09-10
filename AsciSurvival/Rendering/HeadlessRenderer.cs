@@ -32,20 +32,11 @@ namespace AsciSurvival.Rendering
         /// </summary>
         public void RenderTestScene()
         {
-            // Очистка буферов
-            _core.ClearZBuffer();
+            // Очистка всех буферов кадра (символы, цвета, Z-буфер)
+            _core.ClearFrame();
             
-            // Сетка пола (20x20, 20 делений)
-            _core.RenderGrid(20f, 20, _camera, Color.GREEN, 0.8f);
-            
-            // Несколько коробок разных цветов и размеров
-            _core.RenderBox(new Vector3(-5, 2, -5), 3f, _camera, Color.RED, 1.0f);
-            _core.RenderBox(new Vector3(5, 3, -3), 4f, _camera, Color.BLUE, 1.0f);
-            _core.RenderBox(new Vector3(0, 1, -8), 2f, _camera, Color.YELLOW, 1.0f);
-            
-            // Сферы
-            _core.RenderSphere(new Vector3(-8, 2, 3), 2f, _camera, Color.PURPLE, 1.0f);
-            _core.RenderSphere(new Vector3(8, 3, 5), 2.5f, _camera, Color.ORANGE, 1.0f);
+            // Используем общий метод рендерера для тестовой сцены
+            AsciiRenderer.RenderTestScene(_core, _camera);
             
             // Сохранение дампа
             SaveFrameDump("Data/test_frame.txt");
@@ -70,15 +61,11 @@ namespace AsciSurvival.Rendering
                 writer.WriteLine($"Camera: pos={_camera.Position}, target={_camera.Target}");
                 writer.WriteLine(new string('-', _core.GridWidth));
                 
-                // Построчный вывод символов
+                // Построчный вывод символов через общий метод BuildLine
                 for (int y = 0; y < _core.GridHeight; y++)
                 {
-                    var lineChars = new char[_core.GridWidth];
-                    for (int x = 0; x < _core.GridWidth; x++)
-                    {
-                        lineChars[x] = _core.GetGridSymbol(x, y);
-                    }
-                    writer.WriteLine(new string(lineChars));
+                    string line = _core.BuildLine(y, out _);
+                    writer.WriteLine(line);
                 }
                 
                 // Разделитель и информация о цветах (RGB565)
