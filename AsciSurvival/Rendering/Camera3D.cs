@@ -123,7 +123,7 @@ namespace AsciSurvival.Rendering
 
             Target = new Vector3(
                 Position.X + MathF.Sin(_yaw * Deg2Rad) * MathF.Cos(_pitch * Deg2Rad),
-                Position.Y + _currentEyeHeight + MathF.Sin(_pitch * Deg2Rad),
+                Position.Y + MathF.Sin(_pitch * Deg2Rad),
                 Position.Z + MathF.Cos(_yaw * Deg2Rad) * MathF.Cos(_pitch * Deg2Rad)
             );
 
