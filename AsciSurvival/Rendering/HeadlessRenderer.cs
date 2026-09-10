@@ -68,9 +68,9 @@ namespace AsciSurvival.Rendering
                     writer.WriteLine(line);
                 }
                 
-                // Разделитель и информация о цветах (RGB565)
+                // Разделитель и информация о цветах (ARGB32)
                 writer.WriteLine(new string('-', _core.GridWidth));
-                writer.WriteLine("Color data (RGB565 hex values):");
+                writer.WriteLine("Color data (ARGB32 hex values):");
                 
                 // Выводим только каждый 8-й пиксель по горизонтали и вертикали для компактности
                 for (int y = 0; y < _core.GridHeight; y += 8)
@@ -78,8 +78,8 @@ namespace AsciSurvival.Rendering
                     var hexLine = "";
                     for (int x = 0; x < _core.GridWidth; x += 8)
                     {
-                        ushort color = _core.GetGridColor(x, y);
-                        hexLine += $"{color:X4} ";
+                        uint color = _core.GetGridColor(x, y);
+                        hexLine += $"{color:X8} ";
                     }
                     writer.WriteLine(hexLine.TrimEnd());
                 }
