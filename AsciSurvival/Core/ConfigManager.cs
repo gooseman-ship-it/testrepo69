@@ -37,7 +37,9 @@ namespace AsciSurvival.Core
             { "Crouch", "KEY_LEFT_CONTROL" },
             { "Sprint", "KEY_LEFT_SHIFT" },
             { "Interact", "KEY_E" },
-            { "Menu", "KEY_TAB" }
+            { "Pause", "KEY_ESCAPE" },
+            { "Inventory", "KEY_TAB" },
+            { "Exit", "KEY_Q" }
         };
         
         [System.Xml.Serialization.XmlIgnore]
@@ -65,6 +67,9 @@ namespace AsciSurvival.Core
             {
                 string json = File.ReadAllText(path);
                 _config = JsonSerializer.Deserialize<ConfigData>(json);
+                
+                // Миграция конфига: добавляем отсутствующие бинды из дефолта
+                MergeDefaultBindings();
             }
             else
             {
@@ -74,6 +79,18 @@ namespace AsciSurvival.Core
             
             ApplyWindowSettings();
             ParseControls();
+        }
+
+        private static void MergeDefaultBindings()
+        {
+            var defaultBindings = new ControlSettings().Bindings;
+            foreach (var defaultBind in defaultBindings)
+            {
+                if (!_config!.Controls.Bindings.ContainsKey(defaultBind.Key))
+                {
+                    _config.Controls.Bindings[defaultBind.Key] = defaultBind.Value;
+                }
+            }
         }
 
         public static void Save(string path)

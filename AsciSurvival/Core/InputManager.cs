@@ -15,14 +15,16 @@ namespace AsciSurvival.Core
             ToggleMouseCapture(true);
         }
 
-        public static void Update()
+        public static void Update(ref GameState gameState)
         {
-            KeyboardKey menuKey = GetKey("Menu");
-            if (menuKey != KeyboardKey.KEY_NULL && Raylib.IsKeyPressed(menuKey))
-            {
-                IsMenuOpen = !IsMenuOpen;
-                ToggleMouseCapture(!IsMenuOpen);
-            }
+            // В состоянии игры обрабатываем переключение состояний через Game.cs
+            // Здесь только обновление состояния клавиш
+        }
+
+        public static bool IsActionPressed(string action)
+        {
+            KeyboardKey key = GetKey(action);
+            return key != KeyboardKey.KEY_NULL && Raylib.IsKeyPressed(key);
         }
 
         public static bool IsKeyDown(KeyboardKey key) => Raylib.IsKeyDown(key);

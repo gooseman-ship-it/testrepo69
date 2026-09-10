@@ -5,12 +5,15 @@ using System.Numerics;
 
 namespace AsciSurvival.Core
 {
+    public enum GameState { Playing, Paused, Inventory }
+
     public class Game : System.IDisposable
     {
         private Rendering.Camera3D? _camera;
         private Player? _player;
         private AsciiRenderer? _renderer;
         private bool _isDisposed = false;
+        private GameState _gameState = GameState.Playing;
 
         public void Initialize()
         {
@@ -26,18 +29,46 @@ namespace AsciSurvival.Core
         {
             if (_isDisposed) return;
 
-            InputManager.Update();
+            InputManager.Update(ref _gameState);
 
-            // Проверка выхода из игры
-            if (Raylib.IsKeyPressed(KeyboardKey.KEY_ESCAPE))
+            // Обработка переключения состояний игры
+            if (_gameState == GameState.Playing)
             {
-                Raylib.CloseWindow();
-                return;
+                if (InputManager.IsActionPressed("Pause"))
+                {
+                    _gameState = GameState.Paused;
+                    InputManager.ToggleMouseCapture(false);
+                }
+                else if (InputManager.IsActionPressed("Inventory"))
+                {
+                    _gameState = GameState.Inventory;
+                    InputManager.ToggleMouseCapture(false);
+                }
+                else if (_player != null && _camera != null)
+                {
+                    _player.Update(deltaTime, _camera);
+                }
             }
-
-            if (!InputManager.IsMenuOpen && _player != null && _camera != null)
+            else if (_gameState == GameState.Paused)
             {
-                _player.Update(deltaTime, _camera);
+                if (InputManager.IsActionPressed("Pause"))
+                {
+                    _gameState = GameState.Playing;
+                    InputManager.ToggleMouseCapture(true);
+                }
+                else if (InputManager.IsActionPressed("Exit"))
+                {
+                    Raylib.CloseWindow();
+                    return;
+                }
+            }
+            else if (_gameState == GameState.Inventory)
+            {
+                if (InputManager.IsActionPressed("Inventory") || InputManager.IsActionPressed("Pause"))
+                {
+                    _gameState = GameState.Playing;
+                    InputManager.ToggleMouseCapture(true);
+                }
             }
         }
 
@@ -72,10 +103,21 @@ namespace AsciSurvival.Core
             int fpsX = Raylib.GetScreenWidth() - (int)fpsSize.X - 10;
             Raylib.DrawText(fpsText, fpsX, 10, fontSize, Color.GRAY);
             
-            if (InputManager.IsMenuOpen)
+            // Отрисовка оверлеев для состояний Paused и Inventory
+            if (_gameState == GameState.Paused)
             {
                 Raylib.DrawRectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight(), new Color(0, 0, 0, 180));
-                Raylib.DrawText("MENU (TAB to close)", Raylib.GetScreenWidth() / 2 - 100, Raylib.GetScreenHeight() / 2, 30, Color.WHITE);
+                Raylib.DrawText("ПАУЗА", Raylib.GetScreenWidth() / 2 - 80, Raylib.GetScreenHeight() / 2 - 60, 40, Color.WHITE);
+                Raylib.DrawText("Continue (Esc)", Raylib.GetScreenWidth() / 2 - 90, Raylib.GetScreenHeight() / 2, 30, Color.LIGHTGRAY);
+                Raylib.DrawText("Settings (заглушка)", Raylib.GetScreenWidth() / 2 - 120, Raylib.GetScreenHeight() / 2 + 40, 30, Color.LIGHTGRAY);
+                Raylib.DrawText("Exit (Ctrl+Q)", Raylib.GetScreenWidth() / 2 - 85, Raylib.GetScreenHeight() / 2 + 80, 30, Color.LIGHTGRAY);
+            }
+            else if (_gameState == GameState.Inventory)
+            {
+                Raylib.DrawRectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight(), new Color(0, 0, 0, 180));
+                Raylib.DrawText("ИНВЕНТАРЬ", Raylib.GetScreenWidth() / 2 - 100, Raylib.GetScreenHeight() / 2 - 60, 40, Color.WHITE);
+                Raylib.DrawText("Инвентарь пуст", Raylib.GetScreenWidth() / 2 - 85, Raylib.GetScreenHeight() / 2, 30, Color.LIGHTGRAY);
+                Raylib.DrawText("Нажмите Tab или Esc для выхода", Raylib.GetScreenWidth() / 2 - 150, Raylib.GetScreenHeight() / 2 + 60, 25, Color.GRAY);
             }
         }
 
