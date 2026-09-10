@@ -114,9 +114,10 @@ namespace AsciSurvival.Rendering
             _verticalVelocity -= 20.0f * deltaTime;
             Position = new Vector3(Position.X, Position.Y + _verticalVelocity * deltaTime, Position.Z);
 
-            if (Position.Y < EyeHeightStanding) 
+            // Напольный кламп использует текущую высоту глаз (с учётом приседа)
+            if (Position.Y < _currentEyeHeight) 
             {
-                Position = new Vector3(Position.X, EyeHeightStanding, Position.Z);
+                Position = new Vector3(Position.X, _currentEyeHeight, Position.Z);
                 _verticalVelocity = 0;
                 _isGrounded = true;
             }
