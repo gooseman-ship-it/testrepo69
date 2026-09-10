@@ -18,7 +18,7 @@ namespace AsciSurvival.Core
         public static void Update()
         {
             KeyboardKey menuKey = GetKey("Menu");
-            if (menuKey != KeyboardKey.None && Raylib.IsKeyPressed(menuKey))
+            if (menuKey != KeyboardKey.KEY_NULL && Raylib.IsKeyPressed(menuKey))
             {
                 IsMenuOpen = !IsMenuOpen;
                 ToggleMouseCapture(!IsMenuOpen);
@@ -49,7 +49,7 @@ namespace AsciSurvival.Core
 
         public static KeyboardKey GetKey(string action)
         {
-            return _keyBindings.TryGetValue(action, out var key) ? key : KeyboardKey.None;
+            return _keyBindings.TryGetValue(action, out var key) ? key : KeyboardKey.KEY_NULL;
         }
     }
 }

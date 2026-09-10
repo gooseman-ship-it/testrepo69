@@ -52,11 +52,11 @@ namespace AsciSurvival.Core
 
     public static class ConfigManager
     {
-        private static ConfigData _config;
+        private static ConfigData? _config;
 
-        public static GraphicsSettings Graphics => _config.Graphics;
-        public static ControlSettings Controls => _config.Controls;
-        public static AudioSettings Audio => _config.Audio;
+        public static GraphicsSettings Graphics => _config!.Graphics;
+        public static ControlSettings Controls => _config!.Controls;
+        public static AudioSettings Audio => _config!.Audio;
 
         public static void Load(string path)
         {
@@ -77,7 +77,9 @@ namespace AsciSurvival.Core
 
         public static void Save(string path)
         {
-            string dir = Path.GetDirectoryName(path);
+            if (_config == null) return;
+            
+            string? dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir);
@@ -90,7 +92,7 @@ namespace AsciSurvival.Core
 
         public static void ApplyWindowSettings()
         {
-            if (_config.Graphics.Fullscreen)
+            if (_config != null && _config.Graphics.Fullscreen)
             {
                 Raylib.ToggleFullscreen();
             }
@@ -98,10 +100,13 @@ namespace AsciSurvival.Core
 
         public static void SetFullscreen(bool fullscreen)
         {
-            _config.Graphics.Fullscreen = fullscreen;
-            if (fullscreen)
+            if (_config != null)
             {
-                Raylib.ToggleFullscreen();
+                _config.Graphics.Fullscreen = fullscreen;
+                if (fullscreen)
+                {
+                    Raylib.ToggleFullscreen();
+                }
             }
         }
 

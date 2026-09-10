@@ -32,15 +32,15 @@ namespace AsciSurvival.Rendering
             Target = new Vector3(0, 2, 9);
             Up = new Vector3(0, 1, 0);
             Fovy = 60.0f;
-            Projection = CameraProjection.Perspective;
+            Projection = CameraProjection.CAMERA_PERSPECTIVE;
             
             Data = new Raylib_cs.Camera3D
             {
-                Position = Position,
-                Target = Target,
-                Up = Up,
-                Fovy = Fovy,
-                Projection = Projection
+                position = Position,
+                target = Target,
+                up = Up,
+                fovy = Fovy,
+                projection = Projection
             };
         }
 
@@ -63,19 +63,19 @@ namespace AsciSurvival.Rendering
             KeyboardKey leftKey = InputManager.GetKey("MoveLeft");
             KeyboardKey rightKey = InputManager.GetKey("MoveRight");
             
-            if (forwardKey != KeyboardKey.None && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
-            if (backwardKey != KeyboardKey.None && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
-            if (leftKey != KeyboardKey.None && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
-            if (rightKey != KeyboardKey.None && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
+            if (forwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
+            if (backwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
+            if (leftKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
+            if (rightKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
 
             float speed = MoveSpeed;
             
             KeyboardKey sprintKey = InputManager.GetKey("Sprint");
             KeyboardKey crouchKey = InputManager.GetKey("Crouch");
             
-            if (sprintKey != KeyboardKey.None && InputManager.IsKeyDown(sprintKey)) 
+            if (sprintKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(sprintKey)) 
                 speed *= SprintMultiplier;
-            if (crouchKey != KeyboardKey.None && InputManager.IsKeyDown(crouchKey)) 
+            if (crouchKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(crouchKey)) 
                 speed *= 0.5f;
 
             Vector3 forward = new Vector3(MathF.Sin(_yaw * Deg2Rad), 0, MathF.Cos(_yaw * Deg2Rad));
@@ -87,7 +87,7 @@ namespace AsciSurvival.Rendering
             Position += moveVector * speed * deltaTime;
 
             KeyboardKey jumpKey = InputManager.GetKey("Jump");
-            if (jumpKey != KeyboardKey.None && InputManager.IsKeyPressed(jumpKey) && _isGrounded)
+            if (jumpKey != KeyboardKey.KEY_NULL && InputManager.IsKeyPressed(jumpKey) && _isGrounded)
             {
                 _verticalVelocity = 7.0f;
                 _isGrounded = false;
@@ -109,11 +109,13 @@ namespace AsciSurvival.Rendering
                 Position.Z + MathF.Cos(_yaw * Deg2Rad) * MathF.Cos(_pitch * Deg2Rad)
             );
 
-            Data.Position = Position;
-            Data.Target = Target;
-            Data.Up = Up;
-            Data.Fovy = Fovy;
-            Data.Projection = Projection;
+            Data = new Raylib_cs.Camera3D {
+                position = Position,
+                target = Target,
+                up = Up,
+                fovy = Fovy,
+                projection = Projection
+            };
         }
         
         private static float Clamp(float value, float min, float max)
