@@ -168,23 +168,56 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Выбор символа из рампы на основе глубины и яркости
+        /// Выбор символа из рампы на основе яркости с угловым шейдингом и дизерингом
+        /// Дизеринг по (x + y) % 2 сдвигает индекс рампы на границах для сглаживания
         /// </summary>
-        public char GetSymbol(float depth, float brightness = 1.0f)
+        public char GetSymbolWithDither(float depth, float brightness, int x, int y)
         {
-            // Нормализуем глубину в диапазон [0, 1] для выбора символа
+            // Нормализуем глубину в диапазон [0, 1] для мягкого затухания
             float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
             
-            // Применяем множитель яркости (извне для освещения)
+            // Применяем множитель яркости и глубинное затухание (мягкое, не ступенчатое)
             float adjustedBrightness = Clamp(brightness * BrightnessMultiplier, 0f, 1f);
+            float depthFade = 1f - normalizedDepth * 0.3f;  // Мягкое затухание 30%
+            float intensity = adjustedBrightness * depthFade;
+            intensity = Clamp(intensity, 0f, 1f);
             
-            // Комбинируем глубину и яркость: дальние объекты темнее
-            float intensity = adjustedBrightness * (1f - normalizedDepth * 0.5f);
+            // Вычисляем индекс рампы
+            float rampIndexFloat = intensity * (SymbolRamp.Length - 1);
+            int rampIndex = (int)rampIndexFloat;
             
-            int rampIndex = (int)(intensity * (SymbolRamp.Length - 1));
+            // Дизеринг на границах: если дробная часть > 0.5 и (x+y) нечётно, сдвигаем индекс
+            float frac = rampIndexFloat - rampIndex;
+            if (frac > 0.5f && ((x + y) & 1) != 0)
+            {
+                rampIndex = Math.Min(rampIndex + 1, SymbolRamp.Length - 1);
+            }
+            
             rampIndex = Clamp(rampIndex, 0, SymbolRamp.Length - 1);
             
             return SymbolRamp[rampIndex];
+        }
+        
+        /// <summary>
+        /// Вычисление цвета с мягким глубинным затуханием (без изолиний)
+        /// </summary>
+        public uint GetCellColorWithFade(float depth, Color baseColor, float brightness)
+        {
+            // Мягкое затухание с глубиной (линейное, без квантования)
+            float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
+            float depthFade = 1f - normalizedDepth * 0.3f;  // 30% затухание на дальней дистанции
+            
+            // Применяем яркость с BrightnessMultiplier
+            float intensity = brightness * BrightnessMultiplier * depthFade;
+            intensity = Clamp(intensity, 0f, 1f);
+            
+            // Модулируем каждый канал с клампом 0..255
+            int r = Clamp((int)(baseColor.r * intensity), 0, 255);
+            int g = Clamp((int)(baseColor.g * intensity), 0, 255);
+            int b = Clamp((int)(baseColor.b * intensity), 0, 255);
+            byte a = 255;  // Полностью непрозрачный
+            
+            return PackARGB32(a, (byte)r, (byte)g, (byte)b);
         }
         
         /// <summary>
@@ -260,13 +293,6 @@ namespace AsciSurvival.Rendering
         /// </summary>
         public void RenderScene(List<Primitive> primitives, Camera3D camera)
         {
-            // Диагностический зонд для клеток (80, 89) и (80, 60)
-            bool diagnosticDone = false;
-
-            // Зонд: для колонки x=80 выведи строки 60..89: rayDir, t плоскости,
-            // победителя, аргументы записи; сравни с колонкой x=60 (рабочей).
-            // Для отладки щели в центре кадра на ближних строках.
-
             // Для каждой клетки сетки
             for (int y = 0; y < GridHeight; y++)
             {
@@ -275,44 +301,6 @@ namespace AsciSurvival.Rendering
                     // Построить луч из камеры через центр клетки
                     var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
                         x, y, GridWidth, GridHeight, Fovy, camera);
-
-                    // Диагностический вывод для клетки (80, 89) - низ центра
-                    if (!diagnosticDone && x == 80 && y == 89)
-                    {
-                        Console.WriteLine($"DIAGNOSTIC cell ({x},{y}):");
-                        Console.WriteLine($"  rayDir = {rayDir}");
-                        
-                        // Проверка пересечения с полом
-                        var planeHit = RayTracing.RayPlane(rayOrigin, rayDir, 0f);
-                        Console.WriteLine($"  RayPlane: hit={planeHit.Hit}, t={planeHit.T}, hitPoint={planeHit.HitPoint}, normal={planeHit.Normal}");
-                        
-                        // Проверка dot с LightDir
-                        if (planeHit.Hit)
-                        {
-                            Vector3 normal = planeHit.Normal;
-                            if (Vector3.Dot(normal, rayDir) > 0f)
-                            {
-                                normal = -normal;
-                            }
-                            float dot = Vector3.Dot(normal, LightDir);
-                            Console.WriteLine($"  normal(after flip) = {normal}");
-                            Console.WriteLine($"  dot(normal, LightDir) = {dot}");
-                        }
-                        
-                        diagnosticDone = true;
-                    }
-
-                    // Зонд для колонок x=60 и x=80, строки 60..89
-                    bool doProbe = (x == 60 || x == 80) && y >= 60 && y <= 89;
-                    
-                    // Расширенный зонд: центральные колонки x=75..85, строки 40..89
-                    bool doProbeCenter = x >= 75 && x <= 85 && y >= 40 && y <= 89;
-                    
-                    string? probePrefix = null;
-                    if (doProbe || doProbeCenter)
-                    {
-                        probePrefix = $"PROBE x{x}y{y}: ";
-                    }
 
                     // Найти ближайшее пересечение со всеми примитивами
                     float minT = FarPlane;
@@ -330,11 +318,6 @@ namespace AsciSurvival.Rendering
                             PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y),
                             _ => RayTracing.HitResult.Miss
                         };
-
-                        if (doProbe && hit.Hit)
-                        {
-                            Console.WriteLine($"{probePrefix}  candidate {prim.Type}: t={hit.T}, hitPoint={hit.HitPoint}");
-                        }
 
                         if (hit.Hit && hit.T > NearPlane && hit.T < minT)
                         {
@@ -360,22 +343,16 @@ namespace AsciSurvival.Rendering
                             normal = -normal;
                         }
 
-                        // Shading по нормали: brightness = max(0, dot(normal, lightDir))
-                        float shade = MathF.Max(0f, Vector3.Dot(normal, LightDir));
+                        // Угловой шейдинг: dot(normal, LightDir) * dot(normal, -rayDir)
+                        // Первый множитель — освещение от источника, второй — угол взгляда (края темнее)
+                        float lightDot = MathF.Max(0f, Vector3.Dot(normal, LightDir));
+                        float viewDot = MathF.Max(0f, Vector3.Dot(normal, -rayDir));
+                        float shade = lightDot * viewDot;
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
-                        if (doProbe)
-                        {
-                            Console.WriteLine($"{probePrefix} WINNER: type={hitType}, t={minT}, normal={normal}, shade={shade}, symbol={GetSymbol(depth, finalBrightness)}");
-                        }
-
-                        _symbolGrid[index] = GetSymbol(depth, finalBrightness);
-                        _colorGrid[index] = GetCellColor(depth, hitColor, finalBrightness);
+                        _symbolGrid[index] = GetSymbolWithDither(depth, finalBrightness, x, y);
+                        _colorGrid[index] = GetCellColorWithFade(depth, hitColor, finalBrightness);
                         _zBuffer[index] = depth;
-                    }
-                    else if (doProbe)
-                    {
-                        Console.WriteLine($"{probePrefix} MISS: no hit, rayDir={rayDir}");
                     }
                     // Если нет пересечения — клетка остаётся пробелом (уже очищена)
                 }
@@ -392,8 +369,8 @@ namespace AsciSurvival.Rendering
                 if (UpdateZBuffer(gridX, gridY, depth))
                 {
                     int index = gridY * GridWidth + gridX;
-                    _symbolGrid[index] = GetSymbol(depth, brightness);
-                    _colorGrid[index] = GetCellColor(depth, color, brightness);
+                    _symbolGrid[index] = GetSymbolWithDither(depth, brightness, gridX, gridY);
+                    _colorGrid[index] = GetCellColorWithFade(depth, color, brightness);
                 }
             }
         }
