@@ -1,5 +1,6 @@
 ﻿using AsciSurvival.Core;
 using AsciSurvival.Rendering;
+using Raylib_cs;
 
 namespace AsciSurvival
 {
@@ -18,21 +19,27 @@ namespace AsciSurvival
             // Загружаем конфигурацию
             ConfigManager.Load("Data/config.json");
             
+            // Настройка borderless режима ДО InitWindow
             int width = ConfigManager.Graphics.Width;
             int height = ConfigManager.Graphics.Height;
             
-            // Инициализация окна с поддержкой полноэкранного режима
-            Raylib_cs.Raylib.InitWindow(width, height, "ASCII Survival: Frozen Peaks");
-            Raylib_cs.Raylib.SetTargetFPS(ConfigManager.Graphics.FpsLimit);
-
-            // Применяем настройки окна (включая полноэкранный режим)
-            ConfigManager.ApplyWindowSettings();
-
+            if (ConfigManager.Graphics.WindowMode == "borderless")
+                Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_UNDECORATED);
+            
             InputManager.Init();
             
             using (var game = new Game())
             {
                 game.Initialize();
+                
+                // Центрирование окна для borderless ПОСЛЕ InitWindow
+                if (ConfigManager.Graphics.WindowMode == "borderless")
+                {
+                    int mon = Raylib.GetCurrentMonitor();
+                    Raylib.SetWindowPosition(
+                        (Raylib.GetMonitorWidth(mon) - width) / 2,
+                        (Raylib.GetMonitorHeight(mon) - height) / 2);
+                }
                 
                 while (!Raylib_cs.Raylib.WindowShouldClose())
                 {

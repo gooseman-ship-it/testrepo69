@@ -1,29 +1,21 @@
 ```
 # Build artifacts
+*.obj
 *.exe
 *.dll
 *.pdb
-bin/
-obj/
-out/
+*.userprefs
 
 # Dependencies
 packages/
-node_modules/
-.nuget/
+**/bin/
+**/obj/
 
 # Logs
 *.log
 
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
+# User-specific files
 .vs/
-.vscode/
-.idea/
-*.userprefs
 *.user
+*.suo
 ```

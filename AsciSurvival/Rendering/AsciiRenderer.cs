@@ -83,6 +83,10 @@ namespace AsciSurvival.Rendering
 
             // Размер шрифта подбирается из метрик шрифта, а не приравнивается к cellHeight
             int fontSize = (int)MathF.Max(8f, cellHeight);
+            
+            // Точный шаг клетки: glyphW + spacing = cellWidth
+            float glyphW = Raylib.MeasureTextEx(_font, "M", fontSize, 0f).X;
+            float spacing = cellWidth - glyphW;
 
             for (int y = 0; y < _core.GridHeight; y++)
             {
@@ -118,8 +122,8 @@ namespace AsciSurvival.Rendering
                     int posX = (int)(x * cellWidth);
                     int posY = (int)(y * cellHeight);
 
-                    // Рисуем отрезок строки с точной позицией
-                    Raylib.DrawText(runText, posX, posY, fontSize, drawColor);
+                    // Рисуем отрезок строки с точным шагом spacing для выравнивания по cellWidth
+                    Raylib.DrawTextEx(_font, runText, new Vector2(posX, posY), fontSize, spacing, drawColor);
 
                     x += runLength;
                 }
