@@ -32,12 +32,8 @@ namespace AsciSurvival.Rendering
         public static Primitive CreateSphere(Vector3 center, float radius, Color color, float brightness = 1.0f) =>
             new Primitive { Type = PrimitiveType.Sphere, Position = center, Size = radius, Color = color, Brightness = brightness };
 
-        public static Primitive CreatePlane(float y, Color color, float brightness = 1.0f, float limitX = 0f, float limitZ = 0f) =>
-            new Primitive { Type = PrimitiveType.Plane, Position = new Vector3(0, y, 0), Size = 0, Color = color, Brightness = limitX, _limitZ = limitZ };
-
-        private float _limitZ;  // Для плоскости: ограничение по Z
-        public float LimitX => Type == PrimitiveType.Plane ? Brightness : 0f;  // Для плоскости: limitX хранится в Brightness
-        public float LimitZ => _limitZ;
+        public static Primitive CreatePlane(float y, Color color, float brightness = 1.0f) =>
+            new Primitive { Type = PrimitiveType.Plane, Position = new Vector3(0, y, 0), Size = 0, Color = color, Brightness = brightness };
     }
 
     /// <summary>
@@ -283,7 +279,7 @@ namespace AsciSurvival.Rendering
                         Console.WriteLine($"  rayDir = {rayDir}");
                         
                         // Проверка пересечения с полом
-                        var planeHit = RayTracing.RayPlane(rayOrigin, rayDir, 0f, 0f, 0f);
+                        var planeHit = RayTracing.RayPlane(rayOrigin, rayDir, 0f);
                         Console.WriteLine($"  RayPlane: hit={planeHit.Hit}, t={planeHit.T}, hitPoint={planeHit.HitPoint}, normal={planeHit.Normal}");
                         
                         // Проверка dot с LightDir
@@ -314,7 +310,7 @@ namespace AsciSurvival.Rendering
                         {
                             PrimitiveType.Box => RayTracing.RayAABB(rayOrigin, rayDir, prim.Position, prim.Size),
                             PrimitiveType.Sphere => RayTracing.RaySphere(rayOrigin, rayDir, prim.Position, prim.Size),
-                            PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y, prim.LimitX, prim.LimitZ),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y),
                             _ => RayTracing.HitResult.Miss
                         };
 
