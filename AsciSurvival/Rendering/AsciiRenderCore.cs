@@ -1,9 +1,45 @@
 using System;
 using System.Numerics;
+using System.Collections.Generic;
 using Raylib_cs;
 
 namespace AsciSurvival.Rendering
 {
+    /// <summary>
+    /// Тип примитива сцены
+    /// </summary>
+    public enum PrimitiveType
+    {
+        Box,      // AABB коробка
+        Sphere,   // Сфера
+        Plane     // Плоскость (пол)
+    }
+
+    /// <summary>
+    /// Примитив сцены: геометрия + материал
+    /// </summary>
+    public struct Primitive
+    {
+        public PrimitiveType Type;
+        public Vector3 Position;    // Для бокса/сферы - центр, для плоскости - точка на плоскости
+        public float Size;          // Для бокса - половина размера, для сферы - радиус
+        public Color Color;         // Базовый цвет поверхности
+        public float Brightness;    // Базовая яркость (множитель)
+
+        public static Primitive CreateBox(Vector3 center, float halfSize, Color color, float brightness = 1.0f) =>
+            new Primitive { Type = PrimitiveType.Box, Position = center, Size = halfSize, Color = color, Brightness = brightness };
+
+        public static Primitive CreateSphere(Vector3 center, float radius, Color color, float brightness = 1.0f) =>
+            new Primitive { Type = PrimitiveType.Sphere, Position = center, Size = radius, Color = color, Brightness = brightness };
+
+        public static Primitive CreatePlane(float y, Color color, float brightness = 1.0f, float limitX = 0f, float limitZ = 0f) =>
+            new Primitive { Type = PrimitiveType.Plane, Position = new Vector3(0, y, 0), Size = 0, Color = color, Brightness = limitX, _limitZ = limitZ };
+
+        private float _limitZ;  // Для плоскости: ограничение по Z
+        public float LimitX => Type == PrimitiveType.Plane ? Brightness : 0f;  // Для плоскости: limitX хранится в Brightness
+        public float LimitZ => _limitZ;
+    }
+
     /// <summary>
     /// Ядро ASCII-рендерера: чистая математика без зависимостей от окна/GPU.
     /// Проекция 3D точек на сетку символов, Z-буфер, выбор символа и цвета.
@@ -213,7 +249,111 @@ namespace AsciSurvival.Rendering
             
             return PackARGB32(a, (byte)r, (byte)g, (byte)b);
         }
-        
+
+        /// <summary>
+        /// Направленный свет для shading (заглушка).
+        /// Конвенция: LightDir — направление ОТ поверхности К источнику света.
+        /// Свет слева-сверху-спереди от камеры для освещения верхних и фронтальных граней.
+        /// </summary>
+        private static readonly Vector3 LightDir = Vector3.Normalize(new Vector3(-0.4f, 0.8f, 0.5f));
+
+        /// <summary>
+        /// Рендеринг сцены с per-cell raycasting (сплошные поверхности)
+        /// Для каждой клетки строится луч, находится ближайшее пересечение,
+        /// вычисляется нормаль и shading по нормали.
+        /// </summary>
+        public void RenderScene(List<Primitive> primitives, Camera3D camera)
+        {
+            // Диагностический зонд для клеток (80, 89) и (80, 60)
+            bool diagnosticDone = false;
+
+            // Для каждой клетки сетки
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    // Построить луч из камеры через центр клетки
+                    var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
+                        x, y, GridWidth, GridHeight, Fovy, camera);
+
+                    // Диагностический вывод для клетки (80, 89) - низ центра
+                    if (!diagnosticDone && x == 80 && y == 89)
+                    {
+                        Console.WriteLine($"DIAGNOSTIC cell ({x},{y}):");
+                        Console.WriteLine($"  rayDir = {rayDir}");
+                        
+                        // Проверка пересечения с полом
+                        var planeHit = RayTracing.RayPlane(rayOrigin, rayDir, 0f, 0f, 0f);
+                        Console.WriteLine($"  RayPlane: hit={planeHit.Hit}, t={planeHit.T}, hitPoint={planeHit.HitPoint}, normal={planeHit.Normal}");
+                        
+                        // Проверка dot с LightDir
+                        if (planeHit.Hit)
+                        {
+                            Vector3 normal = planeHit.Normal;
+                            if (Vector3.Dot(normal, rayDir) > 0f)
+                            {
+                                normal = -normal;
+                            }
+                            float dot = Vector3.Dot(normal, LightDir);
+                            Console.WriteLine($"  normal(after flip) = {normal}");
+                            Console.WriteLine($"  dot(normal, LightDir) = {dot}");
+                        }
+                        
+                        diagnosticDone = true;
+                    }
+
+                    // Найти ближайшее пересечение со всеми примитивами
+                    float minT = FarPlane;
+                    RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
+                    Color hitColor = Color.WHITE;
+                    float hitBrightness = 1.0f;
+
+                    foreach (var prim in primitives)
+                    {
+                        RayTracing.HitResult hit = prim.Type switch
+                        {
+                            PrimitiveType.Box => RayTracing.RayAABB(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Sphere => RayTracing.RaySphere(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y, prim.LimitX, prim.LimitZ),
+                            _ => RayTracing.HitResult.Miss
+                        };
+
+                        if (hit.Hit && hit.T > NearPlane && hit.T < minT)
+                        {
+                            minT = hit.T;
+                            closestHit = hit;
+                            hitColor = prim.Color;
+                            hitBrightness = prim.Brightness;
+                        }
+                    }
+
+                    // Если есть пересечение — записать в буфер
+                    if (closestHit.Hit)
+                    {
+                        int index = y * GridWidth + x;
+                        float depth = minT;
+
+                        // Нормаль должна смотреть НАВСТРЕЧУ лучу (в сторону камеры)
+                        // Если dot(normal, rayDir) > 0, значит нормаль смотрит в ту же сторону что и луч — переворачиваем
+                        Vector3 normal = closestHit.Normal;
+                        if (Vector3.Dot(normal, rayDir) > 0f)
+                        {
+                            normal = -normal;
+                        }
+
+                        // Shading по нормали: brightness = max(0, dot(normal, lightDir))
+                        float shade = MathF.Max(0f, Vector3.Dot(normal, LightDir));
+                        float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
+
+                        _symbolGrid[index] = GetSymbol(depth, finalBrightness);
+                        _colorGrid[index] = GetCellColor(depth, hitColor, finalBrightness);
+                        _zBuffer[index] = depth;
+                    }
+                    // Если нет пересечения — клетка остаётся пробелом (уже очищена)
+                }
+            }
+        }
+
         /// <summary>
         /// Рендер примитива (точки) в сетку с Z-тестом
         /// </summary>
