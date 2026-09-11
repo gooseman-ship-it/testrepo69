@@ -22,6 +22,7 @@ namespace AsciSurvival.Core
         public float Brightness { get; set; } = 1.0f;
         public string FontPath { get; set; } = "Data/fonts/ascii_font.png";
         public int FpsLimit { get; set; } = 60; // Ограничитель FPS (30/45/60/75/90/120)
+        public string WindowMode { get; set; } = "borderless"; // "windowed", "borderless", "fullscreen"
     }
 
     public class ControlSettings
@@ -110,9 +111,26 @@ namespace AsciSurvival.Core
 
         public static void ApplyWindowSettings()
         {
-            if (_config != null && _config.Graphics.Fullscreen)
+            if (_config != null)
             {
-                Raylib.ToggleFullscreen();
+                if (_config.Graphics.WindowMode == "borderless")
+                {
+                    Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_UNDECORATED);
+                    Raylib.InitWindow(_config.Graphics.Width, _config.Graphics.Height, "AsciSurvival");
+                    int monitorWidth = Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
+                    int monitorHeight = Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
+                    int posX = (monitorWidth - _config.Graphics.Width) / 2;
+                    int posY = (monitorHeight - _config.Graphics.Height) / 2;
+                    Raylib.SetWindowPosition(posX, posY);
+                }
+                else
+                {
+                    Raylib.SetWindowSize(_config.Graphics.Width, _config.Graphics.Height);
+                    if (_config.Graphics.WindowMode == "fullscreen" || _config.Graphics.Fullscreen)
+                    {
+                        Raylib.ToggleFullscreen();
+                    }
+                }
             }
         }
 
