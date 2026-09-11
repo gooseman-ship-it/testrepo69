@@ -54,6 +54,10 @@ namespace AsciSurvival
         {
             Console.WriteLine("Running headless frame test...");
             var renderer = new HeadlessRenderer();
+            
+            // Зонд щели (только под test-frame)
+            renderer.RunGapProbe();
+            
             renderer.RenderTestScene();
             Console.WriteLine("Headless test complete.");
         }
