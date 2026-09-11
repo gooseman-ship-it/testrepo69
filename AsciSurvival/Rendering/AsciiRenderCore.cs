@@ -287,6 +287,27 @@ namespace AsciSurvival.Rendering
         private static readonly Vector3 LightDir = Vector3.Normalize(new Vector3(-0.4f, 0.8f, 0.5f));
 
         /// <summary>
+        /// Публичный доступ к LightDir для зондов
+        /// </summary>
+        public static Vector3 LightDirPublic => LightDir;
+
+        /// <summary>
+        /// Метод для зонда: получение символа по t и shade
+        /// </summary>
+        public char GetSymbolForProbe(float t, float shade, int x, int y)
+        {
+            return GetSymbolWithDither(t, shade, x, y);
+        }
+
+        /// <summary>
+        /// Метод для зонда: получение цвета по t и baseColor/shade
+        /// </summary>
+        public uint GetColorForProbe(float t, Color baseColor, float shade)
+        {
+            return GetCellColorWithFade(t, baseColor, shade);
+        }
+
+        /// <summary>
         /// Рендеринг сцены с per-cell raycasting (сплошные поверхности)
         /// Для каждой клетки строится луч, находится ближайшее пересечение,
         /// вычисляется нормаль и shading по нормали.

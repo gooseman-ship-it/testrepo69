@@ -1,23 +1,19 @@
 ```
 # Build artifacts
-*.o
-*.obj
 *.exe
 *.dll
-*.so
-*.a
-*.out
+*.pdb
+bin/
+obj/
+out/
 
 # Dependencies
 packages/
-lib/
-bin/
-obj/
+node_modules/
+.nuget/
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
-*.swp
 
 # Environment
 .env
@@ -25,66 +21,9 @@ obj/
 *.env.*
 
 # Editors
+.vs/
 .vscode/
 .idea/
-*.suo
+*.userprefs
 *.user
-*.userosscache
-*.sln.docstates
-
-# OS generated files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Icon?
-desktop.ini
-
-# Compiled source
-*.class
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Coverage
-.coverage
-coverage/
-htmlcov/
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# PyTest
-.pytest_cache/
-
-# Visual Studio Code
-.vscode/settings.json
 ```
