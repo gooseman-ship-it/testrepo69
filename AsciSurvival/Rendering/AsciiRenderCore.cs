@@ -168,31 +168,30 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Выбор символа из рампы на основе яркости с угловым шейдингом и дизерингом
-        /// Дизеринг по (x + y) % 2 сдвигает индекс рампы на границах для сглаживания
+        /// Выбор символа из рампы на основе яркости с байеровским дизерингом 4x4
         /// </summary>
         public char GetSymbolWithDither(float depth, float brightness, int x, int y)
         {
             // Нормализуем глубину в диапазон [0, 1] для мягкого затухания
             float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
-            
+
             // Применяем множитель яркости и глубинное затухание (мягкое, не ступенчатое)
             float adjustedBrightness = Clamp(brightness * BrightnessMultiplier, 0f, 1f);
-            float depthFade = 1f - normalizedDepth * 0.3f;  // Мягкое затухание 30%
+            float depthFade = 1f - normalizedDepth * 0.3f;
             float intensity = adjustedBrightness * depthFade;
             intensity = Clamp(intensity, 0f, 1f);
+
+            // Байеровский дизеринг 4x4 для сглаживания переходов между символами
+            int[,] BayerMatrix4x4 = {
+                { 0,  8,  2, 10},
+                {12,  4, 14,  6},
+                { 3, 11,  1,  9},
+                {15,  7, 13,  5}
+            };
             
-            // Вычисляем индекс рампы
-            float rampIndexFloat = intensity * (SymbolRamp.Length - 1);
-            int rampIndex = (int)rampIndexFloat;
-            
-            // Дизеринг на границах: если дробная часть > 0.5 и (x+y) нечётно, сдвигаем индекс
-            float frac = rampIndexFloat - rampIndex;
-            if (frac > 0.5f && ((x + y) & 1) != 0)
-            {
-                rampIndex = Math.Min(rampIndex + 1, SymbolRamp.Length - 1);
-            }
-            
+            float ditherOffset = (BayerMatrix4x4[x & 3, y & 3] + 0.5f) / 16f - 0.5f;
+            float rampIndexFloat = intensity * (SymbolRamp.Length - 1) + ditherOffset;
+            int rampIndex = (int)MathF.Round(rampIndexFloat);
             rampIndex = Clamp(rampIndex, 0, SymbolRamp.Length - 1);
             
             return SymbolRamp[rampIndex];
@@ -364,11 +363,9 @@ namespace AsciSurvival.Rendering
                             normal = -normal;
                         }
 
-                        // Угловой шейдинг: dot(normal, LightDir) * dot(normal, -rayDir)
-                        // Первый множитель — освещение от источника, второй — угол взгляда (края темнее)
+                        // Угловой шейдинг: только освещение от источника, без углового члена
                         float lightDot = MathF.Max(0f, Vector3.Dot(normal, LightDir));
-                        float viewDot = MathF.Max(0f, Vector3.Dot(normal, -rayDir));
-                        float shade = lightDot * viewDot;
+                        float shade = lightDot; // Только освещение от источника, без углового члена
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
                         _symbolGrid[index] = GetSymbolWithDither(depth, finalBrightness, x, y);
