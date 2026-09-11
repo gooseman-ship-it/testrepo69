@@ -1,5 +1,4 @@
-﻿using Raylib_cs;
-using AsciSurvival.Core;
+﻿using AsciSurvival.Core;
 using AsciSurvival.Rendering;
 
 namespace AsciSurvival
@@ -23,8 +22,8 @@ namespace AsciSurvival
             int height = ConfigManager.Graphics.Height;
             
             // Инициализация окна с поддержкой полноэкранного режима
-            Raylib.InitWindow(width, height, "ASCII Survival: Frozen Peaks");
-            Raylib.SetTargetFPS(ConfigManager.Graphics.FpsLimit);
+            Raylib_cs.Raylib.InitWindow(width, height, "ASCII Survival: Frozen Peaks");
+            Raylib_cs.Raylib.SetTargetFPS(ConfigManager.Graphics.FpsLimit);
 
             // Применяем настройки окна (включая полноэкранный режим)
             ConfigManager.ApplyWindowSettings();
@@ -35,9 +34,9 @@ namespace AsciSurvival
             {
                 game.Initialize();
                 
-                while (!Raylib.WindowShouldClose())
+                while (!Raylib_cs.Raylib.WindowShouldClose())
                 {
-                    float deltaTime = Raylib.GetFrameTime();
+                    float deltaTime = Raylib_cs.Raylib.GetFrameTime();
                     
                     game.Update(deltaTime);
                     game.Draw();
@@ -45,7 +44,7 @@ namespace AsciSurvival
             }
 
             ConfigManager.Save("Data/config.json");
-            Raylib.CloseWindow();
+            Raylib_cs.Raylib.CloseWindow();
         }
         
         /// <summary>

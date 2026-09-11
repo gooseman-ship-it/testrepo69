@@ -46,20 +46,28 @@ namespace AsciSurvival.Rendering
 
         /// <summary>
         /// Рендер тестовой сцены (общий метод для игрового рендера и headless)
+        /// Использует per-cell raycasting для сплошных поверхностей
         /// </summary>
         public static void RenderTestScene(AsciiRenderCore core, Camera3D camera)
         {
-            // Сетка пола (20x20, 20 делений)
-            core.RenderGrid(20f, 20, camera, Color.GREEN, 0.8f);
+            // Создаём список примитивов для raycasting-рендера
+            var primitives = new List<Primitive>();
 
-            // Коробки разных цветов и размеров
-            core.RenderBox(new Vector3(-5, 2, -5), 3f, camera, Color.RED, 1.0f);
-            core.RenderBox(new Vector3(5, 3, -3), 4f, camera, Color.BLUE, 1.0f);
-            core.RenderBox(new Vector3(0, 1, -8), 2f, camera, Color.YELLOW, 1.0f);
+            // Пол (плоскость y=0, бесконечный)
+            primitives.Add(Primitive.CreatePlane(0f, Color.GREEN, 1.0f));
 
-            // Сферы
-            core.RenderSphere(new Vector3(-8, 2, 3), 2f, camera, Color.PURPLE, 1.0f);
-            core.RenderSphere(new Vector3(8, 3, 5), 2.5f, camera, Color.ORANGE, 1.0f);
+            // 3 бокса (AABB) с позицией, размером (half-size), цветом
+            // Расположены перед камерой (камера на Z=15, смотрит на Z=0)
+            primitives.Add(Primitive.CreateBox(new Vector3(-5, 2, 5), 1.5f, Color.RED, 1.0f));
+            primitives.Add(Primitive.CreateBox(new Vector3(5, 3, 7), 2f, Color.BLUE, 1.0f));
+            primitives.Add(Primitive.CreateBox(new Vector3(0, 1, 2), 1f, Color.YELLOW, 1.0f));
+
+            // 2 сферы с центром, радиусом, цветом
+            primitives.Add(Primitive.CreateSphere(new Vector3(-8, 2, 8), 2f, Color.PURPLE, 1.0f));
+            primitives.Add(Primitive.CreateSphere(new Vector3(8, 3, 5), 2.5f, Color.ORANGE, 1.0f));
+
+            // Рендерим сцену через per-cell raycasting
+            core.RenderScene(primitives, camera);
         }
 
         /// <summary>
