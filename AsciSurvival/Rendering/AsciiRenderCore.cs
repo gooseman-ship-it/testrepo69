@@ -263,6 +263,10 @@ namespace AsciSurvival.Rendering
             // Диагностический зонд для клеток (80, 89) и (80, 60)
             bool diagnosticDone = false;
 
+            // Зонд: для колонки x=80 выведи строки 60..89: rayDir, t плоскости,
+            // победителя, аргументы записи; сравни с колонкой x=60 (рабочей).
+            // Для отладки щели в центре кадра на ближних строках.
+
             // Для каждой клетки сетки
             for (int y = 0; y < GridHeight; y++)
             {
@@ -298,11 +302,24 @@ namespace AsciSurvival.Rendering
                         diagnosticDone = true;
                     }
 
+                    // Зонд для колонок x=60 и x=80, строки 60..89
+                    bool doProbe = (x == 60 || x == 80) && y >= 60 && y <= 89;
+                    
+                    // Расширенный зонд: центральные колонки x=75..85, строки 40..89
+                    bool doProbeCenter = x >= 75 && x <= 85 && y >= 40 && y <= 89;
+                    
+                    string? probePrefix = null;
+                    if (doProbe || doProbeCenter)
+                    {
+                        probePrefix = $"PROBE x{x}y{y}: ";
+                    }
+
                     // Найти ближайшее пересечение со всеми примитивами
                     float minT = FarPlane;
                     RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
                     Color hitColor = Color.WHITE;
                     float hitBrightness = 1.0f;
+                    PrimitiveType hitType = PrimitiveType.Plane;
 
                     foreach (var prim in primitives)
                     {
@@ -314,12 +331,18 @@ namespace AsciSurvival.Rendering
                             _ => RayTracing.HitResult.Miss
                         };
 
+                        if (doProbe && hit.Hit)
+                        {
+                            Console.WriteLine($"{probePrefix}  candidate {prim.Type}: t={hit.T}, hitPoint={hit.HitPoint}");
+                        }
+
                         if (hit.Hit && hit.T > NearPlane && hit.T < minT)
                         {
                             minT = hit.T;
                             closestHit = hit;
                             hitColor = prim.Color;
                             hitBrightness = prim.Brightness;
+                            hitType = prim.Type;
                         }
                     }
 
@@ -341,9 +364,18 @@ namespace AsciSurvival.Rendering
                         float shade = MathF.Max(0f, Vector3.Dot(normal, LightDir));
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
+                        if (doProbe)
+                        {
+                            Console.WriteLine($"{probePrefix} WINNER: type={hitType}, t={minT}, normal={normal}, shade={shade}, symbol={GetSymbol(depth, finalBrightness)}");
+                        }
+
                         _symbolGrid[index] = GetSymbol(depth, finalBrightness);
                         _colorGrid[index] = GetCellColor(depth, hitColor, finalBrightness);
                         _zBuffer[index] = depth;
+                    }
+                    else if (doProbe)
+                    {
+                        Console.WriteLine($"{probePrefix} MISS: no hit, rayDir={rayDir}");
                     }
                     // Если нет пересечения — клетка остаётся пробелом (уже очищена)
                 }
