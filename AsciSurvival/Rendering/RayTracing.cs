@@ -200,10 +200,8 @@ namespace AsciSurvival.Rendering
         /// <param name="rayOrigin">Начало луча</param>
         /// <param name="rayDir">Направление луча (нормализовано)</param>
         /// <param name="planeY">Y-координата плоскости (пол на y=0)</param>
-        /// <param name="limitX">Игнорируется (устаревший параметр)</param>
-        /// <param name="limitZ">Игнорируется (устаревший параметр)</param>
         /// <returns>Результат пересечения</returns>
-        public static HitResult RayPlane(Vector3 rayOrigin, Vector3 rayDir, float planeY, float limitX = 0f, float limitZ = 0f)
+        public static HitResult RayPlane(Vector3 rayOrigin, Vector3 rayDir, float planeY)
         {
             // Если луч параллелен плоскости
             if (MathF.Abs(rayDir.Y) < 1e-8f)
@@ -217,9 +215,6 @@ namespace AsciSurvival.Rendering
             // Отсечение по FarPlane делается в RenderScene при сравнении t < minT
 
             Vector3 hitPoint = rayOrigin + rayDir * t;
-
-            // Проверка границ удалена — пол бесконечный
-            // limitX и limitZ игнорируются
 
             return new HitResult
             {
