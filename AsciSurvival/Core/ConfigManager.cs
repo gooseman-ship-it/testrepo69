@@ -15,14 +15,14 @@ namespace AsciSurvival.Core
 
     public class GraphicsSettings
     {
-        public int Width { get; set; } = 1280;
-        public int Height { get; set; } = 720;
+        public int Width { get; set; } = 1600;
+        public int Height { get; set; } = 900;
         public bool Fullscreen { get; set; } = false;
         public int RenderDistance { get; set; } = 50;
         public float Brightness { get; set; } = 1.0f;
         public string FontPath { get; set; } = "Data/fonts/ascii_font.png";
         public int FpsLimit { get; set; } = 60; // Ограничитель FPS (30/45/60/75/90/120)
-        public string WindowMode { get; set; } = "borderless"; // "windowed", "borderless", "fullscreen"
+        public string WindowMode { get; set; } = "borderless"; // значения: "windowed", "borderless", "fullscreen"
     }
 
     public class ControlSettings
@@ -113,23 +113,10 @@ namespace AsciSurvival.Core
         {
             if (_config != null)
             {
-                if (_config.Graphics.WindowMode == "borderless")
+                // Только для переключения fullscreen
+                if (_config.Graphics.WindowMode == "fullscreen" || _config.Graphics.Fullscreen)
                 {
-                    Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_UNDECORATED);
-                    Raylib.InitWindow(_config.Graphics.Width, _config.Graphics.Height, "AsciSurvival");
-                    int monitorWidth = Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
-                    int monitorHeight = Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
-                    int posX = (monitorWidth - _config.Graphics.Width) / 2;
-                    int posY = (monitorHeight - _config.Graphics.Height) / 2;
-                    Raylib.SetWindowPosition(posX, posY);
-                }
-                else
-                {
-                    Raylib.SetWindowSize(_config.Graphics.Width, _config.Graphics.Height);
-                    if (_config.Graphics.WindowMode == "fullscreen" || _config.Graphics.Fullscreen)
-                    {
-                        Raylib.ToggleFullscreen();
-                    }
+                    Raylib.ToggleFullscreen();
                 }
             }
         }
