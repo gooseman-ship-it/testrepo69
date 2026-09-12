@@ -376,16 +376,20 @@ namespace AsciSurvival.Rendering
 
                         _zBuffer[index] = minT;
                         _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, colorFade);
-                        _symbolGrid[index] = GetSymbolWithDither(depthForFade, finalBrightness, x, y);
+                        _brightnessBuffer[index] = finalBrightness;
                     }
                     else
                     {
                         _zBuffer[index] = float.MaxValue;
                         _colorGrid[index] = 0;
                         _symbolGrid[index] = ' ';
+                        _brightnessBuffer[index] = 0f;
                     }
                 }
             }
+
+            // Применяем сглаживание яркости и заполняем символы
+            ApplyBrightnessSmoothingAndFillSymbols();
         }
 
         /// <summary>
