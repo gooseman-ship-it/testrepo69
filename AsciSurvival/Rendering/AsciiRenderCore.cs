@@ -42,8 +42,8 @@ namespace AsciSurvival.Rendering
     /// </summary>
     public class AsciiRenderCore
     {
-        /// Символьная рампа от тёмного к светлому (10 символов, проверена по плотности)
-        private const string SymbolRamp = " .:-=+*#%@";
+        /// Символьная рампа от тёмного к светлому (14 уровней, монотонность по чернильной плотности проверена)
+        private const string SymbolRamp = " .,:;-=+*%#$&@";
         
         /// Публичный доступ к рампе для headless-дампа
         public static string SymbolRampPublic => SymbolRamp;
