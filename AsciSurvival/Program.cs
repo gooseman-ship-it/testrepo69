@@ -193,7 +193,37 @@ namespace AsciSurvival
                     int index = y * core.GridWidth + x;
                     char sym = core.GetGridSymbol(x, y);
                     if (sym == ' ') { line += "."; continue; }
-                    line += "?";
+                    
+                    // Строгий алфавит кодировщика GRID_W: P=Plane, B=Box, S=Sphere, N=NoHit
+                    // Определяем тип примитива по символу из рампы
+                    // Символы рампы: " .,:;-=+*%#$&@@"
+                    // Для простоты используем зонд для определения типа попадания
+                    var (rayOriginW, rayDirW) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraH.Fovy, cameraH);
+                    float minT = core.FarPlane;
+                    bool hit = false;
+                    PrimitiveType hitType = PrimitiveType.Plane;
+                    foreach (var prim in primitives)
+                    {
+                        RayTracing.HitResult hitResult = prim.Type switch
+                        {
+                            PrimitiveType.Box => RayTracing.RayAABB(rayOriginW, rayDirW, prim.Position, prim.Size),
+                            PrimitiveType.Sphere => RayTracing.RaySphere(rayOriginW, rayDirW, prim.Position, prim.Size),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOriginW, rayDirW, prim.Position.Y),
+                            _ => RayTracing.HitResult.Miss
+                        };
+                        if (hitResult.Hit && hitResult.T > 0f && hitResult.T < minT)
+                        {
+                            minT = hitResult.T;
+                            hit = true;
+                            hitType = prim.Type;
+                        }
+                    }
+                    
+                    if (!hit) line += "N";
+                    else if (hitType == PrimitiveType.Plane) line += "P";
+                    else if (hitType == PrimitiveType.Box) line += "B";
+                    else if (hitType == PrimitiveType.Sphere) line += "S";
+                    else line += "N";
                 }
                 sb.AppendLine(line);
             }
@@ -282,7 +312,37 @@ namespace AsciSurvival
                     int index = y * core.GridWidth + x;
                     char sym = core.GetGridSymbol(x, y);
                     if (sym == ' ') { line += "."; continue; }
-                    line += "?";
+                    
+                    // Строгий алфавит кодировщика GRID_W: P=Plane, B=Box, S=Sphere, N=NoHit
+                    // Определяем тип примитива по символу из рампы
+                    // Символы рампы: " .,:;-=+*%#$&@"
+                    // Для простоты используем зонд для определения типа попадания
+                    var (rayOriginW, rayDirW) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraD.Fovy, cameraD);
+                    float minT = core.FarPlane;
+                    bool hit = false;
+                    PrimitiveType hitType = PrimitiveType.Plane;
+                    foreach (var prim in primitives)
+                    {
+                        RayTracing.HitResult hitResult = prim.Type switch
+                        {
+                            PrimitiveType.Box => RayTracing.RayAABB(rayOriginW, rayDirW, prim.Position, prim.Size),
+                            PrimitiveType.Sphere => RayTracing.RaySphere(rayOriginW, rayDirW, prim.Position, prim.Size),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOriginW, rayDirW, prim.Position.Y),
+                            _ => RayTracing.HitResult.Miss
+                        };
+                        if (hitResult.Hit && hitResult.T > 0f && hitResult.T < minT)
+                        {
+                            minT = hitResult.T;
+                            hit = true;
+                            hitType = prim.Type;
+                        }
+                    }
+                    
+                    if (!hit) line += "N";
+                    else if (hitType == PrimitiveType.Plane) line += "P";
+                    else if (hitType == PrimitiveType.Box) line += "B";
+                    else if (hitType == PrimitiveType.Sphere) line += "S";
+                    else line += "N";
                 }
                 sb.AppendLine(line);
             }

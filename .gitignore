@@ -1,50 +1,10 @@
 ```
-# Build artifacts
-obj/
-bin/
-*.dll
-*.exe
-*.pdb
-*.userprefs
-*.userosscache
-*.sln.docstates
-
-# Dependencies
-packages/
-node_modules/
-
-# Logs
-*.log
-
-# User-specific files
-.vs/
-*.user
-!*.userprefs
-*.suo
-*.csproj.user
-*.pidb
-*.userprefs
-
-# Environment specific
-.env
-.env.local
-.env.*
-
-# OS generated files
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Testing
-TestResults/
-
-# IDE
-.idea/
-*.swp
-*.swo
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
+# Package files
+*.deb
+*.rpm
+*.pkg.tar.xz
+*.msi
+*.dmg
+*.snap
+*.flatpak
 ```
