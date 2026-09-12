@@ -19,27 +19,44 @@ namespace AsciSurvival
             // Загружаем конфигурацию
             ConfigManager.Load("Data/config.json");
             
-            // Настройка borderless режима ДО InitWindow
             int width = ConfigManager.Graphics.Width;
             int height = ConfigManager.Graphics.Height;
             
+            // Флаг рамки без украшения — строго ДО создания окна
             if (ConfigManager.Graphics.WindowMode == "borderless")
-                Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_UNDECORATED);
+            {
+                Raylib_cs.Raylib.SetConfigFlags(ConfigFlags.FLAG_WINDOW_UNDECORATED);
+            }
+            
+            // Создание окна — единственный вызов во всей программе
+            Raylib_cs.Raylib.InitWindow(width, height, "ASCII Survival: Frozen Peaks");
+            if (!Raylib_cs.Raylib.IsWindowReady())
+            {
+                Console.WriteLine("Окно не инициализировано");
+                return;
+            }
+            
+            // Центрирование ПОСЛЕ создания, с охраной невалидного монитора
+            if (ConfigManager.Graphics.WindowMode == "borderless")
+            {
+                int mon = Raylib_cs.Raylib.GetCurrentMonitor();
+                int mw = Raylib_cs.Raylib.GetMonitorWidth(mon);
+                int mh = Raylib_cs.Raylib.GetMonitorHeight(mon);
+                if (mw > 0 && mh > 0)
+                {
+                    Raylib_cs.Raylib.SetWindowPosition(
+                        Math.Max(0, (mw - width) / 2),
+                        Math.Max(0, (mh - height) / 2));
+                }
+            }
+            
+            Raylib_cs.Raylib.SetTargetFPS(ConfigManager.Graphics.FpsLimit);
             
             InputManager.Init();
             
             using (var game = new Game())
             {
                 game.Initialize();
-                
-                // Центрирование окна для borderless ПОСЛЕ InitWindow
-                if (ConfigManager.Graphics.WindowMode == "borderless")
-                {
-                    int mon = Raylib.GetCurrentMonitor();
-                    Raylib.SetWindowPosition(
-                        (Raylib.GetMonitorWidth(mon) - width) / 2,
-                        (Raylib.GetMonitorHeight(mon) - height) / 2);
-                }
                 
                 while (!Raylib_cs.Raylib.WindowShouldClose())
                 {
