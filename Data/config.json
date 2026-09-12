@@ -1,0 +1,33 @@
+{
+  "Graphics": {
+    "Width": 1600,
+    "Height": 900,
+    "Fullscreen": false,
+    "RenderDistance": 50,
+    "Brightness": 1,
+    "FontPath": "Data/fonts/ascii_font.png",
+    "FpsLimit": 60,
+    "WindowMode": "borderless"
+  },
+  "Controls": {
+    "Bindings": {
+      "MoveForward": "KEY_W",
+      "MoveBackward": "KEY_S",
+      "MoveLeft": "KEY_A",
+      "MoveRight": "KEY_D",
+      "Jump": "KEY_SPACE",
+      "Crouch": "KEY_LEFT_CONTROL",
+      "Sprint": "KEY_LEFT_SHIFT",
+      "Interact": "KEY_E",
+      "Pause": "KEY_ESCAPE",
+      "Inventory": "KEY_TAB",
+      "Exit": "KEY_Q"
+    },
+    "BindingsMap": {}
+  },
+  "Audio": {
+    "MasterVolume": 0.5,
+    "MusicVolume": 0.3,
+    "SfxVolume": 0.7
+  }
+}
