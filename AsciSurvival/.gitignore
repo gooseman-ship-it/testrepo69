@@ -6,3 +6,7 @@ obj/
 *.dll
 *.exe
 *.pdb
+
+# Generated debug reports
+Data/debug_report.txt
+Data/test_frame.txt
