@@ -382,6 +382,10 @@ namespace AsciSurvival.Rendering
                         // Сохраняем яркость в буфер для последующего сглаживания 3×3
                         _brightnessBuffer[index] = finalBrightness;
                         _zBuffer[index] = depth;
+                        
+                        // Вычисляем и сохраняем цвет с затуханием по глубине
+                        uint cellColor = GetCellColorWithFade(minT, hitColor, hitBrightness * colorFade);
+                        _colorGrid[index] = cellColor;
                     }
                     // Если нет пересечения или t > FarPlane — клетка остаётся пробелом (уже очищена)
                 }
