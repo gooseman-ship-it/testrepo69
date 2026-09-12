@@ -141,6 +141,7 @@ namespace AsciSurvival.Rendering
                 writer.WriteLine($"ASCII Frame Dump");
                 writer.WriteLine($"Grid: {_core.GridWidth}x{_core.GridHeight}");
                 writer.WriteLine($"Camera: pos={_camera.Position}, target={_camera.Target}");
+                writer.WriteLine($"RAMP: \"{AsciiRenderCore.SymbolRampPublic}\"");
                 writer.WriteLine(new string('-', _core.GridWidth));
                 
                 // Построчный вывод символов через общий метод BuildLine

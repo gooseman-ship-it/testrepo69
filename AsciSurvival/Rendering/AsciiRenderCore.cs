@@ -45,6 +45,9 @@ namespace AsciSurvival.Rendering
         /// Символьная рампа от тёмного к светлому (10 символов, проверена по плотности)
         private const string SymbolRamp = " .:-=+*#%@";
         
+        /// Публичный доступ к рампе для headless-дампа
+        public static string SymbolRampPublic => SymbolRamp;
+        
         // Разрешение сетки символов (фиксированное количество клеток)
         public int GridWidth { get; } = 160;
         public int GridHeight { get; } = 90;
