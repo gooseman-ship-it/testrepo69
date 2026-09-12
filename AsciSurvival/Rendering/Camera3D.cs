@@ -52,13 +52,15 @@ namespace AsciSurvival.Rendering
 
         public void Update(float deltaTime, Vector3 playerPos)
         {
-            if (!InputManager.IsMenuOpen && Raylib.IsCursorHidden())
+            // Фокус-гейт: читаем дельту мыши всегда, чтобы сбрасывать накопление за время потери фокуса
+            Vector2 mouseDelta = InputManager.GetMouseDelta();
+            bool focused = !InputManager.IsMenuOpen && Raylib.IsWindowFocused() && Raylib.IsCursorHidden();
+            
+            // Применяем дельту только при фокусе и если модуль дельты <= 150 пикселей (защита от скачков)
+            if (focused && mouseDelta.Length() <= 150f)
             {
-                Vector2 mouseDelta = InputManager.GetMouseDelta();
-                
                 _yaw -= mouseDelta.X * MouseSensitivity;
                 _pitch -= mouseDelta.Y * MouseSensitivity;
-
                 _pitch = Clamp(_pitch, -89.0f, 89.0f);
             }
 
@@ -69,10 +71,14 @@ namespace AsciSurvival.Rendering
             KeyboardKey leftKey = InputManager.GetKey("MoveLeft");
             KeyboardKey rightKey = InputManager.GetKey("MoveRight");
             
-            if (forwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
-            if (backwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
-            if (leftKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
-            if (rightKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
+            // Клавиши движения применяются только при фокусе
+            if (focused)
+            {
+                if (forwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
+                if (backwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
+                if (leftKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
+                if (rightKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
+            }
 
             float speed = MoveSpeed;
             

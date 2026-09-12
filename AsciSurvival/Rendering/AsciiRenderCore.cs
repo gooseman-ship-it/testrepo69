@@ -64,6 +64,7 @@ namespace AsciSurvival.Rendering
         private float[] _zBuffer;
         private char[] _symbolGrid;
         private uint[] _colorGrid;  // 32-бит ARGB8888
+        private float[] _brightnessBuffer;  // Буфер яркости для сглаживания 3x3
         
         public AsciiRenderCore()
         {
@@ -71,6 +72,7 @@ namespace AsciSurvival.Rendering
             _zBuffer = new float[size];
             _symbolGrid = new char[size];
             _colorGrid = new uint[size];
+            _brightnessBuffer = new float[size];
         }
         
         /// <summary>
@@ -325,8 +327,8 @@ namespace AsciSurvival.Rendering
                     var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
                         x, y, GridWidth, GridHeight, Fovy, camera);
 
-                    // Найти ближайшее пересечение со всеми примитивами
-                    float minT = FarPlane;
+                    // Инициализировать minT = float.MaxValue для устранения клина горизонта
+                    float minT = float.MaxValue;
                     RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
                     Color hitColor = Color.WHITE;
                     float hitBrightness = 1.0f;
@@ -352,8 +354,8 @@ namespace AsciSurvival.Rendering
                         }
                     }
 
-                    // Если есть пересечение — записать в буфер
-                    if (closestHit.Hit)
+                    // Отсечение по дали применяем ОДНИМ условием после выбора победителя
+                    if (closestHit.Hit && minT <= FarPlane)
                     {
                         int index = y * GridWidth + x;
                         float depth = minT;
@@ -371,16 +373,15 @@ namespace AsciSurvival.Rendering
                         float shade = lightDot; // Только освещение от источника, без углового члена
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
-                        // Разделение интенсивности символа и цвета: символ получает полный градиент яркости,
-                        // цвет — только слабое затухание по глубине для уменьшения контраста полос
-                        float normalizedDepth = Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
-                        float colorFade = 1f - normalizedDepth * 0.15f;
-
-                        _symbolGrid[index] = GetSymbolWithDither(depth, finalBrightness, x, y);
-                        _colorGrid[index] = GetCellColorWithFade(depth, hitColor, colorFade);
+                        // Сохраняем яркость в буфер для последующего сглаживания 3×3
+                        _brightnessBuffer[index] = finalBrightness;
                         _zBuffer[index] = depth;
+                        
+                        // Вычисляем и сохраняем цвет с затуханием по глубине
+                        uint cellColor = GetCellColorWithFade(minT, hitColor, hitBrightness * (1f - Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f) * 0.15f));
+                        _colorGrid[index] = cellColor;
                     }
-                    // Если нет пересечения — клетка остаётся пробелом (уже очищена)
+                    // Если нет пересечения или t > FarPlane — клетка остаётся пробелом (уже очищена)
                 }
             }
         }
