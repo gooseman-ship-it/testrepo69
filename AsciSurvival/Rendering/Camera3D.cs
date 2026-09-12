@@ -52,17 +52,14 @@ namespace AsciSurvival.Rendering
 
         public void Update(float deltaTime, Vector3 playerPos)
         {
-            // Фокус-гейт: читаем дельту мыши всегда, чтобы сбрасывать накопление за время потери фокуса
-            Vector2 mouseDelta = InputManager.GetMouseDelta();
-            bool focused = !InputManager.IsMenuOpen && Raylib.IsWindowFocused() && Raylib.IsCursorHidden();
-            
-            // Применяем дельту только при фокусе и если модуль дельты <= 150 пикселей (защита от скачков)
+            Vector2 mouseDelta = InputManager.GetMouseDelta(); // читать всегда
+            bool focused = Raylib.IsWindowFocused() && Raylib.IsCursorHidden();
             if (focused && mouseDelta.Length() <= 150f)
             {
                 _yaw -= mouseDelta.X * MouseSensitivity;
-                _pitch -= mouseDelta.Y * MouseSensitivity;
-                _pitch = Clamp(_pitch, -89.0f, 89.0f);
+                _pitch = Clamp(_pitch - mouseDelta.Y * MouseSensitivity, -89f, 89f);
             }
+            // Клавиши движения применять только при focused.
 
             Vector2 inputDir = Vector2.Zero;
             

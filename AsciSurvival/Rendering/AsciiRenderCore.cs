@@ -42,8 +42,8 @@ namespace AsciSurvival.Rendering
     /// </summary>
     public class AsciiRenderCore
     {
-        /// Символьная рампа от тёмного к светлому (10 символов, проверена по плотности)
-        private const string SymbolRamp = " .:-=+*#%@";
+        /// Символьная рампа от тёмного к светлому (14 уровней, монотонность по чернильной плотности проверена)
+        private const string SymbolRamp = " .,:;-=+*%#$&@";
         
         /// Публичный доступ к рампе для headless-дампа
         public static string SymbolRampPublic => SymbolRamp;
@@ -333,6 +333,7 @@ namespace AsciSurvival.Rendering
                     RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
                     Color hitColor = Color.WHITE;
                     float hitBrightness = 1.0f;
+                    PrimitiveType hitType = PrimitiveType.Plane;
 
                     foreach (var prim in primitives)
                     {
@@ -350,13 +351,14 @@ namespace AsciSurvival.Rendering
                             closestHit = hit;
                             hitColor = prim.Color;
                             hitBrightness = prim.Brightness;
+                            hitType = prim.Type;
                         }
                     }
 
                     int index = y * GridWidth + x;
 
-                    // Однородное дальнее отсечение после выбора победителя
-                    if (closestHit.Hit && minT < FarPlane)
+                    // Пол бесконечен и не клипается по дали; объекты клипуются.
+                    if (closestHit.Hit && (hitType == PrimitiveType.Plane || minT < FarPlane))
                     {
                         Vector3 normal = closestHit.Normal;
                         if (Vector3.Dot(normal, rayDir) > 0f)
@@ -366,54 +368,22 @@ namespace AsciSurvival.Rendering
 
                         float lightDot = MathF.Max(0f, Vector3.Dot(normal, LightDir));
                         float shade = 0.25f + 0.75f * lightDot; // ambient + diffuse
-                        float rawBrightness = hitBrightness * shade * BrightnessMultiplier;
+                        float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
-                        float normalizedDepth = Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
+                        float depthForFade = MathF.Min(minT, FarPlane);
+                        float normalizedDepth = Clamp((depthForFade - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
                         float colorFade = 1f - normalizedDepth * 0.15f;
 
                         _zBuffer[index] = minT;
-                        _colorGrid[index] = GetCellColorWithFade(minT, hitColor, colorFade);
-                        _brightGrid[index] = rawBrightness;
+                        _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, colorFade);
+                        _symbolGrid[index] = GetSymbolWithDither(depthForFade, finalBrightness, x, y);
                     }
                     else
                     {
                         _zBuffer[index] = float.MaxValue;
                         _colorGrid[index] = 0;
-                        _brightGrid[index] = -1f; // промах
-                    }
-                }
-            }
-
-            // Фаза 2: сглаживание яркости 3x3 и выбор символа
-            for (int y = 0; y < GridHeight; y++)
-            {
-                for (int x = 0; x < GridWidth; x++)
-                {
-                    int index = y * GridWidth + x;
-                    if (_brightGrid[index] < 0f)
-                    {
                         _symbolGrid[index] = ' ';
-                        continue;
                     }
-
-                    float sum = 0f;
-                    float wsum = 0f;
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        for (int dx = -1; dx <= 1; dx++)
-                        {
-                            int xx = x + dx;
-                            int yy = y + dy;
-                            if (xx < 0 || xx >= GridWidth || yy < 0 || yy >= GridHeight) continue;
-                            float v = _brightGrid[yy * GridWidth + xx];
-                            if (v < 0f) continue;
-                            float w = (dx == 0 && dy == 0) ? 4f : (dx == 0 || dy == 0) ? 2f : 1f;
-                            sum += v * w;
-                            wsum += w;
-                        }
-                    }
-                    float smoothed = Clamp(sum / wsum, 0f, 1f);
-                    _symbolGrid[index] = GetSymbolWithDither(_zBuffer[index], smoothed, x, y);
                 }
             }
         }

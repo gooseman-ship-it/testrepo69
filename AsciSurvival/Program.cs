@@ -107,11 +107,12 @@ namespace AsciSurvival
             // BUILD: числа ошибок/предупреждений последнего build
             sb.AppendLine("BUILD: 0/0");
             
-            // RAMP: константа SymbolRamp
-            sb.AppendLine($"RAMP: \"{AsciiRenderCore.SymbolRampPublic}\"");
-            
-            // BASIS: самотест лучей (120,45) и (40,45) при yaw=0
             var core = new AsciiRenderCore();
+            sb.AppendLine($"RAMP: \"{AsciiRenderCore.SymbolRampPublic}\");
+            sb.AppendLine($"CONST_CHECK: FarPlane={core.FarPlane} NearPlane={core.NearPlane} RampLen={AsciiRenderCore.SymbolRampPublic.Length} Ramp=\"{AsciiRenderCore.SymbolRampPublic}\"");
+            sb.AppendLine($"RUNTIME_CHECK: symZero={core.GetSymbolForProbe(10f, 0f, 0, 0)} symLow={core.GetSymbolForProbe(10f, 0.05f, 1, 1)}");
+
+            // BASIS: самотест лучей (120,45) и (40,45) при yaw=0
             var probeCamera = new Rendering.Camera3D
             {
                 Position = new System.Numerics.Vector3(0, 2, 10),
