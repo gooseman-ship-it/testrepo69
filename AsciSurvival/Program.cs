@@ -188,7 +188,9 @@ namespace AsciSurvival
                 sb.AppendLine(line);
             }
             
-            // GRID_Y: знак rayDir.Y для каждой клетки (-/+/0)
+            // GRID_Y: знак rayDir.Y для каждой клетки (-/+/=)
+            // '=' если |rayDir.Y| < 0.02 (пороговые промахи у горизонта),
+            // иначе '-' или '+' по знаку (промахи в глубине кадра)
             sb.AppendLine("GRID_Y:");
             for (int y = 0; y < core.GridHeight; y++)
             {
@@ -196,9 +198,9 @@ namespace AsciSurvival
                 for (int x = 0; x < core.GridWidth; x++)
                 {
                     var (_, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, testCamera.Fovy, testCamera);
-                    if (rayDir.Y > 0.001f) line += "+";
-                    else if (rayDir.Y < -0.001f) line += "-";
-                    else line += "0";
+                    if (MathF.Abs(rayDir.Y) < 0.02f) line += "=";
+                    else if (rayDir.Y > 0f) line += "+";
+                    else line += "-";
                 }
                 sb.AppendLine(line);
             }
