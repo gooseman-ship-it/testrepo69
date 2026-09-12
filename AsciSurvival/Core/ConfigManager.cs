@@ -78,7 +78,6 @@ namespace AsciSurvival.Core
                 Save(path);
             }
             
-            ApplyWindowSettings();
             ParseControls();
         }
 
@@ -111,14 +110,8 @@ namespace AsciSurvival.Core
 
         public static void ApplyWindowSettings()
         {
-            if (_config != null)
-            {
-                // Только для переключения fullscreen
-                if (_config.Graphics.WindowMode == "fullscreen" || _config.Graphics.Fullscreen)
-                {
-                    Raylib.ToggleFullscreen();
-                }
-            }
+            // Метод оставлен пустым для будущего переключения fullscreen из меню.
+            // На старте окна не создаём и не переключаем — это делает Program.cs.
         }
 
         public static void SetFullscreen(bool fullscreen)
