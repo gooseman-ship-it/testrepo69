@@ -52,27 +52,39 @@ namespace AsciSurvival.Rendering
 
         public void Update(float deltaTime, Vector3 playerPos)
         {
-            if (!InputManager.IsMenuOpen && Raylib.IsCursorHidden())
+            // Фокус-гейт: читаем ввод только при активном фокусе окна и захваченном курсоре
+            bool hasFocus = Raylib.IsWindowFocused() && Raylib.IsCursorHidden();
+            
+            if (!InputManager.IsMenuOpen && hasFocus)
             {
                 Vector2 mouseDelta = InputManager.GetMouseDelta();
                 
-                _yaw -= mouseDelta.X * MouseSensitivity;
-                _pitch -= mouseDelta.Y * MouseSensitivity;
+                // Отбрасываем скачки дельты мыши > 150 пикселей (скачки захвата)
+                if (MathF.Abs(mouseDelta.X) <= 150f && MathF.Abs(mouseDelta.Y) <= 150f)
+                {
+                    _yaw -= mouseDelta.X * MouseSensitivity;
+                    _pitch -= mouseDelta.Y * MouseSensitivity;
 
-                _pitch = Clamp(_pitch, -89.0f, 89.0f);
+                    _pitch = Clamp(_pitch, -89.0f, 89.0f);
+                }
+                // Если дельта > 150, просто игнорируем её (кадр замирает по углу)
             }
 
+            // Чтение клавиш движения только при наличии фокуса
             Vector2 inputDir = Vector2.Zero;
             
-            KeyboardKey forwardKey = InputManager.GetKey("MoveForward");
-            KeyboardKey backwardKey = InputManager.GetKey("MoveBackward");
-            KeyboardKey leftKey = InputManager.GetKey("MoveLeft");
-            KeyboardKey rightKey = InputManager.GetKey("MoveRight");
-            
-            if (forwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
-            if (backwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
-            if (leftKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
-            if (rightKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
+            if (hasFocus && !InputManager.IsMenuOpen)
+            {
+                KeyboardKey forwardKey = InputManager.GetKey("MoveForward");
+                KeyboardKey backwardKey = InputManager.GetKey("MoveBackward");
+                KeyboardKey leftKey = InputManager.GetKey("MoveLeft");
+                KeyboardKey rightKey = InputManager.GetKey("MoveRight");
+                
+                if (forwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(forwardKey)) inputDir.Y = -1;
+                if (backwardKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(backwardKey)) inputDir.Y = 1;
+                if (leftKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(leftKey)) inputDir.X = -1;
+                if (rightKey != KeyboardKey.KEY_NULL && InputManager.IsKeyDown(rightKey)) inputDir.X = 1;
+            }
 
             float speed = MoveSpeed;
             

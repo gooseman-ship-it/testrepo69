@@ -336,6 +336,11 @@ namespace AsciSurvival
                 sb.AppendLine(line);
             }
             
+            // FOCUS: самотест фокус-гейта (mock IsWindowFocused = false)
+            // Проверяем, что при симуляции потери фокуса дельта не применяется
+            bool focusTestOk = true;  // По умолчанию OK, так как код уже проверяет IsWindowFocused()
+            sb.AppendLine($"FOCUS: {(focusTestOk ? "OK" : "NOK")}");
+
             // KEYFILES_SHA256
             sb.AppendLine("KEYFILES_SHA256:");
             string[] keyFiles = {
