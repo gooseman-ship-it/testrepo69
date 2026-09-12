@@ -36,4 +36,8 @@ Thumbs.db
 coverage/
 htmlcov/
 *.coverage
+
+# Generated debug reports
+Data/debug_report.txt
+Data/test_frame.txt
 ```
