@@ -177,14 +177,11 @@ namespace AsciSurvival.Rendering
         /// </summary>
         public char GetSymbolWithDither(float depth, float brightness, int x, int y)
         {
-            // Нормализуем глубину в диапазон [0, 1] для мягкого затухания
+            // Яркость уже сглажена и содержит все необходимые множители (shade, BrightnessMultiplier)
+            // Применяем только мягкое глубинное затухание для согласованности с цветом
             float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
-
-            // Применяем множитель яркости и глубинное затухание (мягкое, не ступенчатое)
-            float adjustedBrightness = Clamp(brightness * BrightnessMultiplier, 0f, 1f);
             float depthFade = 1f - normalizedDepth * 0.3f;
-            float intensity = adjustedBrightness * depthFade;
-            intensity = Clamp(intensity, 0f, 1f);
+            float intensity = Clamp(brightness * depthFade, 0f, 1f);
 
             // Байеровский дизеринг 4x4 для сглаживания переходов между символами
             int[,] BayerMatrix4x4 = {
@@ -318,7 +315,7 @@ namespace AsciSurvival.Rendering
         /// </summary>
         public void RenderScene(List<Primitive> primitives, Camera3D camera)
         {
-            // Для каждой клетки сетки
+            // Первый проход: трассировка лучей, заполнение _brightnessBuffer и _zBuffer
             for (int y = 0; y < GridHeight; y++)
             {
                 for (int x = 0; x < GridWidth; x++)
@@ -381,7 +378,86 @@ namespace AsciSurvival.Rendering
                         uint cellColor = GetCellColorWithFade(minT, hitColor, hitBrightness * (1f - Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f) * 0.15f));
                         _colorGrid[index] = cellColor;
                     }
-                    // Если нет пересечения или t > FarPlane — клетка остаётся пробелом (уже очищена)
+                    else
+                    {
+                        // Нет пересечения или t > FarPlane — клетка остаётся пробелом
+                        int index = y * GridWidth + x;
+                        _brightnessBuffer[index] = 0f;
+                        _zBuffer[index] = float.MaxValue;
+                    }
+                }
+            }
+
+            // Второй проход: сглаживание яркости окном 3×3 и запись символов
+            ApplyBrightnessSmoothingAndFillSymbols();
+        }
+
+        /// <summary>
+        /// Сглаживание яркости окном 3×3 с весами (центр 4, стороны 2, углы 1)
+        /// и заполнение _symbolGrid сглаженными значениями
+        /// </summary>
+        private void ApplyBrightnessSmoothingAndFillSymbols()
+        {
+            float[] smoothedBuffer = new float[_brightnessBuffer.Length];
+            
+            // Веса окна 3×3: центр 4, соседи по сторонам 2, углы 1
+            // Сумма весов = 4 + 4*2 + 4*1 = 4 + 8 + 4 = 16
+
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    float weightedSum = 0f;
+                    float currentWeightSum = 0f;
+
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            int nx = x + dx;
+                            int ny = y + dy;
+
+                            // Края без заворота — пропускаем выходящие за границы
+                            if (nx < 0 || nx >= GridWidth || ny < 0 || ny >= GridHeight)
+                                continue;
+
+                            int nIndex = ny * GridWidth + nx;
+                            
+                            // Определяем вес в зависимости от позиции
+                            float weight;
+                            if (dx == 0 && dy == 0)
+                                weight = 4f; // центр
+                            else if (dx == 0 || dy == 0)
+                                weight = 2f; // соседи по сторонам
+                            else
+                                weight = 1f; // углы
+
+                            weightedSum += _brightnessBuffer[nIndex] * weight;
+                            currentWeightSum += weight;
+                        }
+                    }
+
+                    smoothedBuffer[y * GridWidth + x] = weightedSum / currentWeightSum;
+                }
+            }
+
+            // Заполняем _symbolGrid используя сглаженные значения яркости
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    int index = y * GridWidth + x;
+                    float depth = _zBuffer[index];
+                    
+                    if (depth < float.MaxValue && depth <= FarPlane)
+                    {
+                        float smoothedBrightness = smoothedBuffer[index];
+                        _symbolGrid[index] = GetSymbolWithDither(depth, smoothedBrightness, x, y);
+                    }
+                    else
+                    {
+                        _symbolGrid[index] = ' ';
+                    }
                 }
             }
         }
