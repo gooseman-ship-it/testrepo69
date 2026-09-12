@@ -130,11 +130,21 @@ namespace AsciSurvival
             bool basisOk = proj120 > 0f && proj40 < 0f;
             sb.AppendLine($"BASIS: {(basisOk ? "OK" : "NOK")}");
             
-            // DUMP_SYMBOLS и DUMP_COLORS: камера pos=<0,2,10>, target=<0,2,9>
-            var testCamera = new Rendering.Camera3D
+            // Камера H: pos=<0,2,10>, target=<0,2,9>
+            var cameraH = new Rendering.Camera3D
             {
                 Position = new System.Numerics.Vector3(0, 2, 10),
                 Target = new System.Numerics.Vector3(0, 2, 9),
+                Up = new System.Numerics.Vector3(0, 1, 0),
+                Fovy = 60f,
+                Projection = CameraProjection.CAMERA_PERSPECTIVE
+            };
+            
+            // Камера D: pos=<0,2,10>, pitch=-80 (target вычисляется)
+            var cameraD = new Rendering.Camera3D
+            {
+                Position = new System.Numerics.Vector3(0, 2, 10),
+                Target = new System.Numerics.Vector3(0, 2 + MathF.Sin(-80f * MathF.PI / 180f), 10 + MathF.Cos(-80f * MathF.PI / 180f)),
                 Up = new System.Numerics.Vector3(0, 1, 0),
                 Fovy = 60f,
                 Projection = CameraProjection.CAMERA_PERSPECTIVE
@@ -148,17 +158,19 @@ namespace AsciSurvival
             primitives.Add(Primitive.CreateSphere(new System.Numerics.Vector3(-8, 2, 8), 2f, Color.PURPLE, 1.0f));
             primitives.Add(Primitive.CreateSphere(new System.Numerics.Vector3(8, 3, 5), 2.5f, Color.ORANGE, 1.0f));
             
+            // === СЕКЦИЯ H (камера pos=<0,2,10>, target=<0,2,9>) ===
             core.ClearFrame();
-            core.RenderScene(primitives, testCamera);
+            core.RenderScene(primitives, cameraH);
             
-            sb.AppendLine("DUMP_SYMBOLS:");
+            sb.AppendLine("=== CAMERA H: pos=<0,2,10>, target=<0,2,9> ===");
+            sb.AppendLine("DUMP_SYMBOLS_H:");
             for (int y = 0; y < core.GridHeight; y++)
             {
                 string line = core.BuildLine(y, out _);
                 sb.AppendLine(line);
             }
             
-            sb.AppendLine("DUMP_COLORS:");
+            sb.AppendLine("DUMP_COLORS_H:");
             for (int y = 0; y < core.GridHeight; y++)
             {
                 var hexLine = "";
@@ -170,8 +182,7 @@ namespace AsciSurvival
                 sb.AppendLine(hexLine.TrimEnd());
             }
             
-            // GRID_W: победитель (P/B/S/.) для каждой клетки
-            sb.AppendLine("GRID_W:");
+            sb.AppendLine("GRID_W_H:");
             for (int y = 0; y < core.GridHeight; y++)
             {
                 var line = "";
@@ -180,24 +191,18 @@ namespace AsciSurvival
                     int index = y * core.GridWidth + x;
                     char sym = core.GetGridSymbol(x, y);
                     if (sym == ' ') { line += "."; continue; }
-                    
-                    // Определяем тип победителя по символу (упрощённо)
-                    // В реальном коде нужно хранить тип примитива в буфере
-                    line += "?"; // Заглушка, требует доработки
+                    line += "?";
                 }
                 sb.AppendLine(line);
             }
             
-            // GRID_Y: знак rayDir.Y для каждой клетки (-/+/=)
-            // '=' если |rayDir.Y| < 0.02 (пороговые промахи у горизонта),
-            // иначе '-' или '+' по знаку (промахи в глубине кадра)
-            sb.AppendLine("GRID_Y:");
+            sb.AppendLine("GRID_Y_H:");
             for (int y = 0; y < core.GridHeight; y++)
             {
                 var line = "";
                 for (int x = 0; x < core.GridWidth; x++)
                 {
-                    var (_, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, testCamera.Fovy, testCamera);
+                    var (_, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraH.Fovy, cameraH);
                     if (MathF.Abs(rayDir.Y) < 0.02f) line += "=";
                     else if (rayDir.Y > 0f) line += "+";
                     else line += "-";
@@ -205,14 +210,102 @@ namespace AsciSurvival
                 sb.AppendLine(line);
             }
             
-            // GRID_T: корзина t (0=<1, 1=1..5, 2=5..20, 3=20..100, .=промах)
-            sb.AppendLine("GRID_T:");
+            sb.AppendLine("GRID_T_H:");
             for (int y = 0; y < core.GridHeight; y++)
             {
                 var line = "";
                 for (int x = 0; x < core.GridWidth; x++)
                 {
-                    var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, testCamera.Fovy, testCamera);
+                    var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraH.Fovy, cameraH);
+                    
+                    float minT = core.FarPlane;
+                    bool hit = false;
+                    foreach (var prim in primitives)
+                    {
+                        RayTracing.HitResult hitResult = prim.Type switch
+                        {
+                            PrimitiveType.Box => RayTracing.RayAABB(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Sphere => RayTracing.RaySphere(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y),
+                            _ => RayTracing.HitResult.Miss
+                        };
+                        
+                        if (hitResult.Hit && hitResult.T > 0f && hitResult.T < minT)
+                        {
+                            minT = hitResult.T;
+                            hit = true;
+                        }
+                    }
+                    
+                    if (!hit) line += ".";
+                    else if (minT < 1f) line += "0";
+                    else if (minT < 5f) line += "1";
+                    else if (minT < 20f) line += "2";
+                    else if (minT < 100f) line += "3";
+                    else line += ".";
+                }
+                sb.AppendLine(line);
+            }
+            
+            // === СЕКЦИЯ D (камера pos=<0,2,10>, pitch=-80) ===
+            core.ClearFrame();
+            core.RenderScene(primitives, cameraD);
+            
+            sb.AppendLine("=== CAMERA D: pos=<0,2,10>, pitch=-80 ===");
+            sb.AppendLine("DUMP_SYMBOLS_D:");
+            for (int y = 0; y < core.GridHeight; y++)
+            {
+                string line = core.BuildLine(y, out _);
+                sb.AppendLine(line);
+            }
+            
+            sb.AppendLine("DUMP_COLORS_D:");
+            for (int y = 0; y < core.GridHeight; y++)
+            {
+                var hexLine = "";
+                for (int x = 0; x < core.GridWidth; x += 8)
+                {
+                    uint color = core.GetGridColor(x, y);
+                    hexLine += $"{color:X8} ";
+                }
+                sb.AppendLine(hexLine.TrimEnd());
+            }
+            
+            sb.AppendLine("GRID_W_D:");
+            for (int y = 0; y < core.GridHeight; y++)
+            {
+                var line = "";
+                for (int x = 0; x < core.GridWidth; x++)
+                {
+                    int index = y * core.GridWidth + x;
+                    char sym = core.GetGridSymbol(x, y);
+                    if (sym == ' ') { line += "."; continue; }
+                    line += "?";
+                }
+                sb.AppendLine(line);
+            }
+            
+            sb.AppendLine("GRID_Y_D:");
+            for (int y = 0; y < core.GridHeight; y++)
+            {
+                var line = "";
+                for (int x = 0; x < core.GridWidth; x++)
+                {
+                    var (_, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraD.Fovy, cameraD);
+                    if (MathF.Abs(rayDir.Y) < 0.02f) line += "=";
+                    else if (rayDir.Y > 0f) line += "+";
+                    else line += "-";
+                }
+                sb.AppendLine(line);
+            }
+            
+            sb.AppendLine("GRID_T_D:");
+            for (int y = 0; y < core.GridHeight; y++)
+            {
+                var line = "";
+                for (int x = 0; x < core.GridWidth; x++)
+                {
+                    var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraD.Fovy, cameraD);
                     
                     float minT = core.FarPlane;
                     bool hit = false;
