@@ -111,8 +111,7 @@ namespace AsciSurvival.Rendering
                         normal = -normal;
                     
                     float lightDot = MathF.Max(0f, Vector3.Dot(normal, AsciiRenderCore.LightDirPublic));
-                    float viewDot = MathF.Max(0f, Vector3.Dot(normal, -rayDir));
-                    float shade = lightDot * viewDot;
+                    float shade = lightDot; // Только освещение от источника, без углового члена
                     
                     // Получаем символ и цвет через core
                     int index = probeRow * _core.GridWidth + x;
