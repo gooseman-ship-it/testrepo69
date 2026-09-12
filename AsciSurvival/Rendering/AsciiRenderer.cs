@@ -85,7 +85,7 @@ namespace AsciSurvival.Rendering
             int fontSize = (int)MathF.Max(8f, cellHeight);
             
             // Точный шаг клетки: glyphW + spacing = cellWidth
-            float glyphW = Raylib.MeasureTextEx(_font, "M", fontSize, 0f).X;
+            float glyphW = Raylib.MeasureTextEx(_font, "MM", fontSize, 0f).X / 2f;
             float spacing = cellWidth - glyphW;
 
             for (int y = 0; y < _core.GridHeight; y++)
