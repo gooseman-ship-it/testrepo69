@@ -108,8 +108,9 @@ namespace AsciSurvival
             sb.AppendLine("BUILD: 0/0");
             
             var core = new AsciiRenderCore();
-            sb.AppendLine($"RAMP: \"{AsciiRenderCore.SymbolRampPublic}\");
-            sb.AppendLine($"CONST_CHECK: FarPlane={core.FarPlane} NearPlane={core.NearPlane} RampLen={AsciiRenderCore.SymbolRampPublic.Length} Ramp=\"{AsciiRenderCore.SymbolRampPublic}\"");
+            string ramp = AsciiRenderCore.SymbolRampPublic;
+            sb.AppendLine($"RAMP: \"{ramp}\"");
+            sb.AppendLine($"CONST_CHECK: FarPlane={core.FarPlane} NearPlane={core.NearPlane} RampLen={ramp.Length} Ramp=\"{ramp}\"");
             sb.AppendLine($"RUNTIME_CHECK: symZero={core.GetSymbolForProbe(10f, 0f, 0, 0)} symLow={core.GetSymbolForProbe(10f, 0.05f, 1, 1)}");
 
             // BASIS: самотест лучей (120,45) и (40,45) при yaw=0
