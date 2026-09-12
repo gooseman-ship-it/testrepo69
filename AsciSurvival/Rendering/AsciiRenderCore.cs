@@ -65,6 +65,7 @@ namespace AsciSurvival.Rendering
         private char[] _symbolGrid;
         private uint[] _colorGrid;  // 32-бит ARGB8888
         private float[] _brightnessBuffer;  // Буфер яркости для сглаживания 3x3
+        private float[] _brightGrid;
         
         public AsciiRenderCore()
         {
@@ -73,6 +74,7 @@ namespace AsciSurvival.Rendering
             _symbolGrid = new char[size];
             _colorGrid = new uint[size];
             _brightnessBuffer = new float[size];
+            _brightGrid = new float[size];
         }
         
         /// <summary>
@@ -196,6 +198,11 @@ namespace AsciSurvival.Rendering
             int rampIndex = (int)MathF.Round(rampIndexFloat);
             rampIndex = Clamp(rampIndex, 0, SymbolRamp.Length - 1);
             
+            if (intensity > 0.02f && rampIndex < 1)
+            {
+                rampIndex = 1;
+            }
+            
             return SymbolRamp[rampIndex];
         }
         
@@ -315,21 +322,17 @@ namespace AsciSurvival.Rendering
         /// </summary>
         public void RenderScene(List<Primitive> primitives, Camera3D camera)
         {
-            // Первый проход: трассировка лучей, заполнение _brightnessBuffer и _zBuffer
             for (int y = 0; y < GridHeight; y++)
             {
                 for (int x = 0; x < GridWidth; x++)
                 {
-                    // Построить луч из камеры через центр клетки
                     var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
                         x, y, GridWidth, GridHeight, Fovy, camera);
 
-                    // Инициализировать minT = float.MaxValue для устранения клина горизонта
                     float minT = float.MaxValue;
                     RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
                     Color hitColor = Color.WHITE;
                     float hitBrightness = 1.0f;
-                    PrimitiveType hitType = PrimitiveType.Plane;
 
                     foreach (var prim in primitives)
                     {
@@ -347,49 +350,72 @@ namespace AsciSurvival.Rendering
                             closestHit = hit;
                             hitColor = prim.Color;
                             hitBrightness = prim.Brightness;
-                            hitType = prim.Type;
                         }
                     }
 
-                    // Отсечение по дали применяем ОДНИМ условием после выбора победителя
-                    if (closestHit.Hit && minT <= FarPlane)
-                    {
-                        int index = y * GridWidth + x;
-                        float depth = minT;
+                    int index = y * GridWidth + x;
 
-                        // Нормаль должна смотреть НАВСТРЕЧУ лучу (в сторону камеры)
-                        // Если dot(normal, rayDir) > 0, значит нормаль смотрит в ту же сторону что и луч — переворачиваем
+                    // Однородное дальнее отсечение после выбора победителя
+                    if (closestHit.Hit && minT < FarPlane)
+                    {
                         Vector3 normal = closestHit.Normal;
                         if (Vector3.Dot(normal, rayDir) > 0f)
                         {
                             normal = -normal;
                         }
 
-                        // Угловой шейдинг: только освещение от источника, без углового члена
                         float lightDot = MathF.Max(0f, Vector3.Dot(normal, LightDir));
-                        float shade = lightDot; // Только освещение от источника, без углового члена
-                        float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
+                        float shade = 0.25f + 0.75f * lightDot; // ambient + diffuse
+                        float rawBrightness = hitBrightness * shade * BrightnessMultiplier;
 
-                        // Сохраняем яркость в буфер для последующего сглаживания 3×3
-                        _brightnessBuffer[index] = finalBrightness;
-                        _zBuffer[index] = depth;
-                        
-                        // Вычисляем и сохраняем цвет с затуханием по глубине
-                        uint cellColor = GetCellColorWithFade(minT, hitColor, hitBrightness * (1f - Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f) * 0.15f));
-                        _colorGrid[index] = cellColor;
+                        float normalizedDepth = Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
+                        float colorFade = 1f - normalizedDepth * 0.15f;
+
+                        _zBuffer[index] = minT;
+                        _colorGrid[index] = GetCellColorWithFade(minT, hitColor, colorFade);
+                        _brightGrid[index] = rawBrightness;
                     }
                     else
                     {
-                        // Нет пересечения или t > FarPlane — клетка остаётся пробелом
-                        int index = y * GridWidth + x;
-                        _brightnessBuffer[index] = 0f;
                         _zBuffer[index] = float.MaxValue;
+                        _colorGrid[index] = 0;
+                        _brightGrid[index] = -1f; // промах
                     }
                 }
             }
 
-            // Второй проход: сглаживание яркости окном 3×3 и запись символов
-            ApplyBrightnessSmoothingAndFillSymbols();
+            // Фаза 2: сглаживание яркости 3x3 и выбор символа
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    int index = y * GridWidth + x;
+                    if (_brightGrid[index] < 0f)
+                    {
+                        _symbolGrid[index] = ' ';
+                        continue;
+                    }
+
+                    float sum = 0f;
+                    float wsum = 0f;
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            int xx = x + dx;
+                            int yy = y + dy;
+                            if (xx < 0 || xx >= GridWidth || yy < 0 || yy >= GridHeight) continue;
+                            float v = _brightGrid[yy * GridWidth + xx];
+                            if (v < 0f) continue;
+                            float w = (dx == 0 && dy == 0) ? 4f : (dx == 0 || dy == 0) ? 2f : 1f;
+                            sum += v * w;
+                            wsum += w;
+                        }
+                    }
+                    float smoothed = Clamp(sum / wsum, 0f, 1f);
+                    _symbolGrid[index] = GetSymbolWithDither(_zBuffer[index], smoothed, x, y);
+                }
+            }
         }
 
         /// <summary>
