@@ -44,7 +44,7 @@ namespace AsciSurvival.Rendering
             // Устойчивое вычисление right/up через углы (не через cross)
             float yaw = MathF.Atan2(forward.X, forward.Z);
             float pitch = MathF.Asin(forward.Y);
-            Vector3 right = new Vector3(MathF.Cos(yaw), 0, -MathF.Sin(yaw));
+            Vector3 right = new Vector3(-MathF.Cos(yaw), 0, MathF.Sin(yaw));
             Vector3 up = new Vector3(
                 -MathF.Sin(pitch) * MathF.Sin(yaw),
                 MathF.Cos(pitch),

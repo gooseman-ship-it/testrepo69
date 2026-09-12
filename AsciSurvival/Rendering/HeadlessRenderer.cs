@@ -122,6 +122,87 @@ namespace AsciSurvival.Rendering
                 
                 Console.WriteLine($"{x}: rayDir({rayDir.X:F3},{rayDir.Y:F3},{rayDir.Z:F3}) | {winner,-6} | t={t:F2} | '{symbol}'({(int)symbol}) | {color:X8}");
             }
+            
+            // Таблица зонда из 20 клеток для игровой камеры (pos=<0,2,10>, pitch=-80)
+            Console.WriteLine("");
+            Console.WriteLine("=== ZOND TABLE: 20 cells for camera pos=<0,2,10>, pitch=-80 ===");
+            Console.WriteLine("Format: (x,y) | hit | t | normal(X,Y,Z) | lightDot | finalBrightness");
+            
+            int[] probeXs = { 70, 75, 80, 85, 90 };
+            int[] probeYs = { 40, 45, 50, 55 };
+            
+            foreach (int py in probeYs)
+            {
+                foreach (int px in probeXs)
+                {
+                    var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
+                        px, py, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
+                    
+                    float minT = _core.FarPlane;
+                    RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
+                    PrimitiveType hitType = PrimitiveType.Plane;
+                    
+                    foreach (var prim in primitives)
+                    {
+                        RayTracing.HitResult hitResult = prim.Type switch
+                        {
+                            PrimitiveType.Box => RayTracing.RayAABB(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Sphere => RayTracing.RaySphere(rayOrigin, rayDir, prim.Position, prim.Size),
+                            PrimitiveType.Plane => RayTracing.RayPlane(rayOrigin, rayDir, prim.Position.Y),
+                            _ => RayTracing.HitResult.Miss
+                        };
+                        
+                        if (hitResult.Hit && hitResult.T > 0f && hitResult.T < minT)
+                        {
+                            minT = hitResult.T;
+                            closestHit = hitResult;
+                            hitType = prim.Type;
+                        }
+                    }
+                    
+                    bool hit = closestHit.Hit;
+                    float tVal = hit ? minT : -1f;
+                    Vector3 normal = hit ? closestHit.Normal : new Vector3(0, 0, 0);
+                    float lightDot = 0f;
+                    float finalBrightness = 0f;
+                    
+                    if (hit)
+                    {
+                        // Переворот нормали навстречу лучу
+                        if (Vector3.Dot(normal, rayDir) > 0f)
+                            normal = -normal;
+                        
+                        lightDot = MathF.Max(0f, Vector3.Dot(normal, AsciiRenderCore.LightDirPublic));
+                        float shade = lightDot;
+                        float hitBrightness = hitType == PrimitiveType.Plane ? 1.0f : primitives.Find(p => p.Type == hitType).Brightness;
+                        finalBrightness = hitBrightness * shade * _core.BrightnessMultiplier;
+                    }
+                    
+                    Console.WriteLine($"({px},{py}) | hit={hit,-5} | t={tVal,-6:F2} | normal=({normal.X:F2},{normal.Y:F2},{normal.Z:F2}) | lightDot={lightDot:F2} | finalBrightness={finalBrightness:F2}");
+                }
+            }
+            
+            // Самотест согласованности базисов: проверка лучей клеток (120,45) и (40,45) при yaw=0
+            Console.WriteLine("");
+            Console.WriteLine("=== BASIS SELF-TEST ===");
+            // При yaw=0 стрейф вправо = (-cos(0), 0, sin(0)) = (-1, 0, 0)
+            Vector3 strafeRight = new Vector3(-1f, 0f, 0f);
+            
+            var (rayOrigin120, rayDir120) = RayTracing.BuildRayThroughCell(
+                120, 45, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
+            var (rayOrigin40, rayDir40) = RayTracing.BuildRayThroughCell(
+                40, 45, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
+            
+            // Проекция луча на вектор стрейфа: dot(rayDir, strafeRight)
+            float proj120 = Vector3.Dot(rayDir120, strafeRight);
+            float proj40 = Vector3.Dot(rayDir40, strafeRight);
+            
+            // Луч клетки (120,45) должен иметь положительную компоненту вдоль стрейфа вправо
+            // Луч клетки (40,45) должен иметь отрицательную компоненту
+            bool basisOk = proj120 > 0f && proj40 < 0f;
+            Console.WriteLine($"Cell (120,45): rayDir=({rayDir120.X:F3},{rayDir120.Y:F3},{rayDir120.Z:F3}), proj_on_strafe={proj120:F3}");
+            Console.WriteLine($"Cell (40,45): rayDir=({rayDir40.X:F3},{rayDir40.Y:F3},{rayDir40.Z:F3}), proj_on_strafe={proj40:F3}");
+            Console.WriteLine($"BASIS: {(basisOk ? "OK" : "NOK")}");
         }
         
         /// <summary>

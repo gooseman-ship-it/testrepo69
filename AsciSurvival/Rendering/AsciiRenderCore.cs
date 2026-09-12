@@ -371,8 +371,13 @@ namespace AsciSurvival.Rendering
                         float shade = lightDot; // Только освещение от источника, без углового члена
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
+                        // Разделение интенсивности символа и цвета: символ получает полный градиент яркости,
+                        // цвет — только слабое затухание по глубине для уменьшения контраста полос
+                        float normalizedDepth = Clamp((minT - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
+                        float colorFade = 1f - normalizedDepth * 0.15f;
+
                         _symbolGrid[index] = GetSymbolWithDither(depth, finalBrightness, x, y);
-                        _colorGrid[index] = GetCellColorWithFade(depth, hitColor, finalBrightness);
+                        _colorGrid[index] = GetCellColorWithFade(depth, hitColor, colorFade);
                         _zBuffer[index] = depth;
                     }
                     // Если нет пересечения — клетка остаётся пробелом (уже очищена)
