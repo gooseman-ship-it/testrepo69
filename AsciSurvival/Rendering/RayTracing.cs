@@ -39,24 +39,26 @@ namespace AsciSurvival.Rendering
             Vector3 camTarget = camera.Target;
             Vector3 camUp = camera.Up;
 
-            // Вектор взгляда (forward)
             Vector3 forward = Vector3.Normalize(camTarget - camPos);
-            Vector3 right = Vector3.Normalize(Vector3.Cross(forward, camUp));
-            Vector3 up = Vector3.Cross(right, forward);
+            
+            // Устойчивое вычисление right/up через углы (не через cross)
+            float yaw = MathF.Atan2(forward.X, forward.Z);
+            float pitch = MathF.Asin(forward.Y);
+            Vector3 right = new Vector3(MathF.Cos(yaw), 0, -MathF.Sin(yaw));
+            Vector3 up = new Vector3(
+                -MathF.Sin(pitch) * MathF.Sin(yaw),
+                MathF.Cos(pitch),
+                -MathF.Sin(pitch) * MathF.Cos(yaw)
+            );
 
-            // Центр клетки в нормализованных координатах [-1, 1]
             float nx = (x + 0.5f) / gridWidth * 2f - 1f;
             float ny = 1f - (y + 0.5f) / gridHeight * 2f;
 
-            // Соотношение сторон
             float aspect = (float)gridWidth / gridHeight;
             float tanFovY2 = MathF.Tan(fovy * 0.5f * MathF.PI / 180f);
 
-            // Направление луча в пространстве камеры
-            // dir = normalize(nx * right * aspect * tanFovY2 + ny * up * tanFovY2 + forward)
             Vector3 dir = forward + nx * right * aspect * tanFovY2 + ny * up * tanFovY2;
             dir = Vector3.Normalize(dir);
-
             return (camPos, dir);
         }
 

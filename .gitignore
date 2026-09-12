@@ -1,21 +1,39 @@
-```
+```csharp
 # Build artifacts
-*.obj
-*.exe
 *.dll
+*.exe
 *.pdb
-*.userprefs
+*.nupkg
+*.snupkg
+bin/
+obj/
+out/
 
 # Dependencies
 packages/
-**/bin/
-**/obj/
+node_modules/
+vendor/
 
 # Logs
 *.log
 
-# User-specific files
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
 .vs/
-*.user
-*.suo
+.vim/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+htmlcov/
+*.coverage
 ```
