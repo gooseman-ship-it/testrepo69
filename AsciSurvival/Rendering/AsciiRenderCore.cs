@@ -175,32 +175,36 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Выбор символа из рампы на основе яркости с байеровским дизерингом 4x4
+        /// Выбор символа по яркости и дистанции с байеровским дизерингом 4×4.
+        /// Дистанция даёт мягкую бледность дальних клеток. Амплитуда дизеринга —
+        /// ПОЛНЫЙ шаг индекса рампы: изолинии уровней размываются в шум,
+        /// поэтому концентрические кольца на полосах равной глубины не читаются.
         /// </summary>
         public char GetSymbolWithDither(float depth, float brightness, int x, int y)
         {
-            // Яркость уже сглажена и содержит все необходимые множители (shade, BrightnessMultiplier)
-            // Применяем только мягкое глубинное затухание для согласованности с цветом
-            float intensity = Clamp(brightness, 0f, 1f);
+            // Слабое дистанционное затухание: дальние клетки бледнее, но не гаснут.
+            float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
+            float depthFade = 1f - normalizedDepth * 0.4f;
+            float intensity = Clamp(brightness * depthFade, 0f, 1f);
 
-            // Байеровский дизеринг 4x4 для сглаживания переходов между символами
+            // Байеровский дизеринг 4×4.
             int[,] BayerMatrix4x4 = {
                 { 0,  8,  2, 10},
                 {12,  4, 14,  6},
                 { 3, 11,  1,  9},
                 {15,  7, 13,  5}
             };
-            
-            float ditherOffset = (BayerMatrix4x4[x & 3, y & 3] + 0.5f) / 16f - 0.5f;
+
+            // Диапазон [-1, +1] шага рампы (было [-0.5, +0.5]).
+            float ditherOffset = ((BayerMatrix4x4[x & 3, y & 3] + 0.5f) / 16f - 0.5f) * 2f;
             float rampIndexFloat = intensity * (SymbolRamp.Length - 1) + ditherOffset;
             int rampIndex = (int)MathF.Round(rampIndexFloat);
             rampIndex = Clamp(rampIndex, 0, SymbolRamp.Length - 1);
-            
+
+            // На освещённой поверхности нижняя граница — символ '.' (индекс 1).
             if (intensity > 0.02f && rampIndex < 1)
-            {
                 rampIndex = 1;
-            }
-            
+
             return SymbolRamp[rampIndex];
         }
         
@@ -370,7 +374,11 @@ namespace AsciSurvival.Rendering
 
                         float depthForFade = MathF.Min(minT, FarPlane);
                 
-                        _zBuffer[index] = minT;
+                        // Усечение по FarPlane: accept пропускает плоскость с любым t,
+                        // но сглаживание ниже отвергает символ при depth > FarPlane.
+                        // Усечённая глубина согласует accept и символ: клетка с валидным цветом
+                        // получает валидный символ даже за FarPlane.
+                        _zBuffer[index] = MathF.Min(minT, FarPlane);
                         _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, finalBrightness);
                         _brightnessBuffer[index] = finalBrightness;
                     }
