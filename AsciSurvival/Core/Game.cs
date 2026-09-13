@@ -97,7 +97,7 @@ namespace AsciSurvival.Core
             Raylib.DrawText($"Hunger: {_player.Hunger:F0}", 10, 60, fontSize, Color.ORANGE);
             Raylib.DrawText($"Thirst: {_player.Thirst:F0}", 10, 85, fontSize, Color.BLUE);
             Raylib.DrawText(
-                $"cam=({_camera.Position.X:F1},{_camera.Position.Y:F1},{_camera.Position.Z:F1}) yaw={_camera.Yaw:F0} pitch={_camera.Pitch:F0}",
+                $"cam=({_camera!.Position.X:F1},{_camera.Position.Y:F1},{_camera.Position.Z:F1}) yaw={_camera.Yaw:F0} pitch={_camera.Pitch:F0}",
                 10, 110, fontSize, Color.WHITE);
             
             // FPS с отступом через MeasureText, чтобы не выходил за правый край
