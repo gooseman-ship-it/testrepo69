@@ -29,6 +29,9 @@ namespace AsciSurvival.Rendering
         private bool _isCrouching = false;
         private float _currentEyeHeight = EyeHeightStanding;
 
+        public float Yaw   => _yaw;
+        public float Pitch => _pitch;
+
         // Константа для перевода градусов в радианы (совместима с .NET 8)
         private const float Deg2Rad = MathF.PI / 180.0f;
 
