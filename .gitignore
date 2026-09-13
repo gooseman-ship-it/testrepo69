@@ -63,3 +63,10 @@ desktop.ini
 *.nupkg
 packages/
 ```
+# Сгенерированные отчёты и тестовые артефакты
+Data/debug_report.txt
+debug_report.txt
+test_frame.txt
+bin/
+obj/
+*.log
