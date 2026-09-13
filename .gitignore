@@ -1,10 +1,56 @@
-```
-# Package files
-*.deb
-*.rpm
-*.pkg.tar.xz
-*.msi
-*.dmg
-*.snap
-*.flatpak
-```
+# Compiled and build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+obj/
+
+# Dependencies
+packages/
+lib/
+bin/
+obj/
+Debug/
+Release/
+.vs/
+.vshost.exe
+.userprefs
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.cache
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
+*.csproj.user
+*.userprefs
+
+# Build outputs
+bin/
+obj/
+out/
+dist/
+build/
+target/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+.deps/
+.lockb/
