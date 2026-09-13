@@ -109,28 +109,6 @@ namespace AsciSurvival
             
             var core = new AsciiRenderCore();
             string ramp = AsciiRenderCore.SymbolRampPublic;
-            sb.AppendLine($"RAMP: \"{ramp}\"");
-            sb.AppendLine($"CONST_CHECK: FarPlane={core.FarPlane} NearPlane={core.NearPlane} RampLen={ramp.Length} Ramp=\"{ramp}\"");
-            sb.AppendLine($"RUNTIME_CHECK: symZero={core.GetSymbolForProbe(10f, 0f, 0, 0)} symLow={core.GetSymbolForProbe(10f, 0.05f, 1, 1)}");
-
-            // BASIS: самотест лучей (120,45) и (40,45) при yaw=0
-            var probeCamera = new Rendering.Camera3D
-            {
-                Position = new System.Numerics.Vector3(0, 2, 10),
-                Target = new System.Numerics.Vector3(0, 2 + MathF.Sin(-80f * MathF.PI / 180f), 10 + MathF.Cos(-80f * MathF.PI / 180f)),
-                Up = new System.Numerics.Vector3(0, 1, 0),
-                Fovy = 60f,
-                Projection = CameraProjection.CAMERA_PERSPECTIVE
-            };
-            
-            var (_, rayDir120) = RayTracing.BuildRayThroughCell(120, 45, core.GridWidth, core.GridHeight, probeCamera.Fovy, probeCamera);
-            var (_, rayDir40) = RayTracing.BuildRayThroughCell(40, 45, core.GridWidth, core.GridHeight, probeCamera.Fovy, probeCamera);
-            
-            System.Numerics.Vector3 strafeRight = new System.Numerics.Vector3(-1f, 0f, 0f); // (-cos(0), 0, sin(0))
-            float proj120 = System.Numerics.Vector3.Dot(rayDir120, strafeRight);
-            float proj40 = System.Numerics.Vector3.Dot(rayDir40, strafeRight);
-            bool basisOk = proj120 > 0f && proj40 < 0f;
-            sb.AppendLine($"BASIS: {(basisOk ? "OK" : "NOK")}");
             
             // Камера H: pos=<0,2,10>, target=<0,2,9>
             var cameraH = new Rendering.Camera3D
@@ -151,6 +129,30 @@ namespace AsciSurvival
                 Fovy = 60f,
                 Projection = CameraProjection.CAMERA_PERSPECTIVE
             };
+            
+            sb.AppendLine($"RAMP: \"{ramp}\"");
+            sb.AppendLine($"CONST_CHECK: FarPlane={core.FarPlane} NearPlane={core.NearPlane} RampLen={ramp.Length} Ramp=\"{ramp}\"");
+            sb.AppendLine($"FOVY_CHECK: coreFovy={core.Fovy} cameraFovyH={cameraH.Fovy} cameraFovyD={cameraD.Fovy}");
+            sb.AppendLine($"RUNTIME_CHECK: symZero={core.GetSymbolForProbe(10f, 0f, 0, 0)} symLow={core.GetSymbolForProbe(10f, 0.05f, 1, 1)}");
+
+            // BASIS: самотест лучей (120,45) и (40,45) при yaw=0
+            var probeCamera = new Rendering.Camera3D
+            {
+                Position = new System.Numerics.Vector3(0, 2, 10),
+                Target = new System.Numerics.Vector3(0, 2 + MathF.Sin(-80f * MathF.PI / 180f), 10 + MathF.Cos(-80f * MathF.PI / 180f)),
+                Up = new System.Numerics.Vector3(0, 1, 0),
+                Fovy = 60f,
+                Projection = CameraProjection.CAMERA_PERSPECTIVE
+            };
+            
+            var (_, rayDir120) = RayTracing.BuildRayThroughCell(120, 45, core.GridWidth, core.GridHeight, probeCamera.Fovy, probeCamera);
+            var (_, rayDir40) = RayTracing.BuildRayThroughCell(40, 45, core.GridWidth, core.GridHeight, probeCamera.Fovy, probeCamera);
+            
+            System.Numerics.Vector3 strafeRight = new System.Numerics.Vector3(-1f, 0f, 0f); // (-cos(0), 0, sin(0))
+            float proj120 = System.Numerics.Vector3.Dot(rayDir120, strafeRight);
+            float proj40 = System.Numerics.Vector3.Dot(rayDir40, strafeRight);
+            bool basisOk = proj120 > 0f && proj40 < 0f;
+            sb.AppendLine($"BASIS: {(basisOk ? "OK" : "NOK")}");
             
             var primitives = new List<Primitive>();
             primitives.Add(Primitive.CreatePlane(0f, Color.GREEN, 1.0f));
@@ -185,6 +187,7 @@ namespace AsciSurvival
             }
             
             sb.AppendLine("GRID_W_H:");
+            string[] GRID_W_H = new string[core.GridHeight];
             for (int y = 0; y < core.GridHeight; y++)
             {
                 var line = "";
@@ -225,8 +228,21 @@ namespace AsciSurvival
                     else if (hitType == PrimitiveType.Sphere) line += "S";
                     else line += "N";
                 }
+                GRID_W_H[y] = line;
                 sb.AppendLine(line);
             }
+            
+            int floorRejected = 0;
+            int totalCells = core.GridWidth * core.GridHeight;
+            for (int y = 0; y < core.GridHeight; y++)
+                for (int x = 0; x < core.GridWidth; x++)
+                {
+                    var (o, d) = RayTracing.BuildRayThroughCell(x, y, core.GridWidth, core.GridHeight, cameraH.Fovy, cameraH);
+                    var h = RayTracing.RayPlane(o, d, 0f);
+                    if (h.Hit && h.T > core.NearPlane && h.T <= core.FarPlane && GRID_W_H[y][x] == '.')
+                        floorRejected++;
+                }
+            sb.AppendLine($"REJECT_STATS: floorRejected={floorRejected} totalCells={totalCells}");
             
             sb.AppendLine("GRID_Y_H:");
             for (int y = 0; y < core.GridHeight; y++)
