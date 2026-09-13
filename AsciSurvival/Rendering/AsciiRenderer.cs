@@ -71,7 +71,7 @@ namespace AsciSurvival.Rendering
         }
 
         /// <summary>
-        /// Отрисовка ASCII-сетки на экране через батчинг (один DrawText на строку)
+        /// Отрисовка ASCII-сетки на экране посимвольно с явной позицией клетки
         /// </summary>
         private void DrawAsciiGrid()
         {
@@ -83,49 +83,28 @@ namespace AsciSurvival.Rendering
 
             // Размер шрифта подбирается из метрик шрифта, а не приравнивается к cellHeight
             int fontSize = (int)MathF.Max(8f, cellHeight);
-            
-            // Точный шаг клетки: glyphW + spacing = cellWidth
-            float glyphW = Raylib.MeasureTextEx(_font, "MM", fontSize, 0f).X / 2f;
-            float spacing = cellWidth - glyphW;
 
+            // Посимвольно: каждый символ рисуется точно в клетке (x*cellWidth, y*cellHeight).
+            // Дефолтный шрифт Raylib не моноширинный, поэтому группировать нельзя —
+            // накопление реальных ширин glyph ломает выравнивание и даёт чёрные зазоры.
             for (int y = 0; y < _core.GridHeight; y++)
             {
-                // Используем общий метод ядра для построения строки
-                string line = _core.BuildLine(y, out uint[] lineColors);
-
-                // Run-length батчинг: последовательные клетки одинакового ARGB32 рисуются одним DrawTextEx
-                int x = 0;
-                while (x < _core.GridWidth)
+                for (int x = 0; x < _core.GridWidth; x++)
                 {
-                    // Пропускаем пустые клетки (пробелы без цвета)
-                    if (lineColors[x] == 0)
-                    {
-                        x++;
-                        continue;
-                    }
+                    uint argb = _core.GetGridColor(x, y);
+                    if (argb == 0) continue;
 
-                    // Находим конец последовательности с одинаковым цветом
-                    uint currentColor = lineColors[x];
-                    int runLength = 1;
-                    while (x + runLength < _core.GridWidth && lineColors[x + runLength] == currentColor)
-                    {
-                        runLength++;
-                    }
+                    char sym = _core.GetGridSymbol(x, y);
+                    if (sym == ' ') continue;
 
-                    // Извлекаем подстроку для этого отрезка
-                    string runText = line.Substring(x, runLength);
-
-                    // Декодируем цвет из ARGB32
-                    Color drawColor = AsciiRenderCore.UnpackARGB32(currentColor);
-
-                    // Позиционирование по cellWidth явно
-                    int posX = (int)(x * cellWidth);
-                    int posY = (int)(y * cellHeight);
-
-                    // Рисуем отрезок строки с точным шагом spacing для выравнивания по cellWidth
-                    Raylib.DrawTextEx(_font, runText, new Vector2(posX, posY), fontSize, spacing, drawColor);
-
-                    x += runLength;
+                    Color drawColor = AsciiRenderCore.UnpackARGB32(argb);
+                    int codepoint = (int)sym;
+                    Raylib.DrawTextCodepoint(
+                        _font,
+                        codepoint,
+                        new Vector2((float)(x * cellWidth), (float)(y * cellHeight)),
+                        fontSize,
+                        drawColor);
                 }
             }
         }
