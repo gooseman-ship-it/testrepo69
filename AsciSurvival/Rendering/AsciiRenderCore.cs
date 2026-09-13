@@ -369,7 +369,6 @@ namespace AsciSurvival.Rendering
                         float finalBrightness = hitBrightness * shade * BrightnessMultiplier;
 
                         float depthForFade = MathF.Min(minT, FarPlane);
-                        float normalizedDepth = Clamp((depthForFade - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
                 
                         _zBuffer[index] = minT;
                         _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, finalBrightness);
