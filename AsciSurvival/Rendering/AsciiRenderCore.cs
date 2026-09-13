@@ -181,9 +181,7 @@ namespace AsciSurvival.Rendering
         {
             // Яркость уже сглажена и содержит все необходимые множители (shade, BrightnessMultiplier)
             // Применяем только мягкое глубинное затухание для согласованности с цветом
-            float normalizedDepth = Clamp((depth - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
-            float depthFade = 1f - normalizedDepth * 0.3f;
-            float intensity = Clamp(brightness * depthFade, 0f, 1f);
+            float intensity = Clamp(brightness, 0f, 1f);
 
             // Байеровский дизеринг 4x4 для сглаживания переходов между символами
             int[,] BayerMatrix4x4 = {
@@ -327,7 +325,7 @@ namespace AsciSurvival.Rendering
                 for (int x = 0; x < GridWidth; x++)
                 {
                     var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
-                        x, y, GridWidth, GridHeight, Fovy, camera);
+                        x, y, GridWidth, GridHeight, camera.Fovy, camera);
 
                     float minT = float.MaxValue;
                     RayTracing.HitResult closestHit = RayTracing.HitResult.Miss;
@@ -372,10 +370,9 @@ namespace AsciSurvival.Rendering
 
                         float depthForFade = MathF.Min(minT, FarPlane);
                         float normalizedDepth = Clamp((depthForFade - NearPlane) / (FarPlane - NearPlane), 0f, 1f);
-                        float colorFade = 1f - normalizedDepth * 0.15f;
-
+                
                         _zBuffer[index] = minT;
-                        _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, colorFade);
+                        _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, finalBrightness);
                         _brightnessBuffer[index] = finalBrightness;
                     }
                     else
