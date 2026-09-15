@@ -16,7 +16,7 @@ namespace AsciSurvival.Rendering
         {
             _width = width;
             _height = height;
-            _core = new AsciiRenderCore();
+            _core = new AsciiRenderCore(320, 180);
             
             // Загружаем шрифт или используем дефолтный
             string fontPath = ConfigManager.Graphics.FontPath;
@@ -86,7 +86,7 @@ namespace AsciSurvival.Rendering
             float cellHeight = (float)screenHeight / _core.GridHeight;
 
             // Размер шрифта подбирается из метрик шрифта, а не приравнивается к cellHeight
-            int fontSize = (int)MathF.Max(8f, cellHeight);
+            int fontSize = (int)MathF.Max(4f, cellHeight);
 
             // Посимвольно: каждый символ рисуется точно в клетке (x*cellWidth, y*cellHeight).
             // Дефолтный шрифт Raylib не моноширинный, поэтому группировать нельзя —
