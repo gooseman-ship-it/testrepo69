@@ -48,9 +48,9 @@ namespace AsciSurvival.Rendering
         /// Публичный доступ к рампе для headless-дампа
         public static string SymbolRampPublic => SymbolRamp;
         
-        // Разрешение сетки символов (фиксированное количество клеток)
-        public int GridWidth { get; } = 160;
-        public int GridHeight { get; } = 90;
+        // Разрешение сетки символов (параметризуемое количество клеток)
+        public int GridWidth { get; }
+        public int GridHeight { get; }
         
         // Параметры камеры
         public float Fovy { get; set; } = 60f;
@@ -67,8 +67,14 @@ namespace AsciSurvival.Rendering
         private float[] _brightnessBuffer;  // Буфер яркости для сглаживания 3x3
         private float[] _brightGrid;
         
-        public AsciiRenderCore()
+        /// <summary>
+        /// Конструктор ASCII-рендерера с параметризуемым разрешением сетки.
+        /// По умолчанию используется сетка 160×90.
+        /// </summary>
+        public AsciiRenderCore(int width = 160, int height = 90)
         {
+            GridWidth = width;
+            GridHeight = height;
             int size = GridWidth * GridHeight;
             _zBuffer = new float[size];
             _symbolGrid = new char[size];

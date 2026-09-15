@@ -20,7 +20,11 @@ namespace AsciSurvival.Rendering
             
             // Загружаем шрифт или используем дефолтный
             string fontPath = ConfigManager.Graphics.FontPath;
-            if (System.IO.File.Exists(fontPath))
+            if (System.IO.File.Exists(fontPath) && fontPath.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
+            {
+                _font = Raylib.LoadFontEx(fontPath, 6, null, 0);
+            }
+            else if (System.IO.File.Exists(fontPath))
             {
                 _font = Raylib.LoadFont(fontPath);
             }

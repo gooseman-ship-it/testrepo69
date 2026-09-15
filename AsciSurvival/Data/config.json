@@ -6,7 +6,7 @@
     "Fullscreen": false,
     "RenderDistance": 50,
     "Brightness": 1,
-    "FontPath": "Data/fonts/ascii_font.png"
+    "FontPath": "Data/fonts/AsciiMono.ttf"
   },
   "Controls": {
     "Bindings": {
