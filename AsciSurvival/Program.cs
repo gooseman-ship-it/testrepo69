@@ -1,6 +1,7 @@
 ﻿using AsciSurvival.Core;
 using AsciSurvival.Rendering;
 using Raylib_cs;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -109,6 +110,70 @@ namespace AsciSurvival
             
             string ramp = AsciiRenderCore.SymbolRampPublic;
             sb.AppendLine($"RAMP: \"{ramp}\"");
+            
+            // Создаём ядро и камеру для рендера тестовой сцены
+            var core = new AsciiRenderCore(320, 180);
+            var camera = new AsciSurvival.Rendering.Camera3D 
+            { 
+                Position = new Vector3(0, 5, 15), 
+                Target = new Vector3(0, 2, 0), 
+                Up = new Vector3(0, 1, 0), 
+                Fovy = 60f, 
+                Projection = CameraProjection.CAMERA_PERSPECTIVE 
+            };
+            
+            core.ClearFrame();
+            AsciiRenderer.RenderTestScene(core, camera);
+            
+            // Секция GRID_W: тип победителя для каждой клетки
+            sb.AppendLine("=== GRID_W ===");
+            int countP = 0, countB = 0, countS = 0, countN = 0;
+            for (int y = 0; y < 180; y++)
+            {
+                var row = new StringBuilder();
+                for (int x = 0; x < 320; x++)
+                {
+                    byte wt = core.GetWinnerType(x, y);
+                    char c = wt switch
+                    {
+                        0 => 'P',
+                        1 => 'B',
+                        2 => 'S',
+                        255 => 'N',
+                        _ => 'N'
+                    };
+                    row.Append(c);
+                    
+                    // Подсчёт для COUNTS_W
+                    if (wt == 0) countP++;
+                    else if (wt == 1) countB++;
+                    else if (wt == 2) countS++;
+                    else countN++;
+                }
+                sb.AppendLine($"GRID_W {y} {row}");
+            }
+            sb.AppendLine($"COUNTS_W P={countP} B={countB} S={countS} N={countN}");
+            
+            // Секция GRID_I: индекс победителя для каждой клетки
+            sb.AppendLine("=== GRID_I ===");
+            int[] countIdx = new int[6]; // счётчики для индексов 0..5
+            int countDot = 0; // счётчик промахов
+            for (int y = 0; y < 180; y++)
+            {
+                var row = new StringBuilder();
+                for (int x = 0; x < 320; x++)
+                {
+                    int wi = core.GetWinnerIndex(x, y);
+                    char c = wi < 0 ? '.' : ((char)('0' + wi));
+                    row.Append(c);
+                    
+                    // Подсчёт для COUNTS_I
+                    if (wi < 0) countDot++;
+                    else if (wi >= 0 && wi <= 5) countIdx[wi]++;
+                }
+                sb.AppendLine($"GRID_I {y} {row}");
+            }
+            sb.AppendLine($"COUNTS_I 0={countIdx[0]} 1={countIdx[1]} 2={countIdx[2]} 3={countIdx[3]} 4={countIdx[4]} 5={countIdx[5]} .={countDot}");
             
             // KEYFILES_SHA256
             sb.AppendLine("KEYFILES_SHA256:");
