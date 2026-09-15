@@ -1,5 +1,6 @@
-```csharp
-# Build results
+# Сборка .NET
+[Bb]in/
+[Oo]bj/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -8,10 +9,8 @@ x64/
 x86/
 build/
 bld/
-[Bb]in/
-[Oo]bj/
 
-# Visual Studio files
+# Visual Studio
 *.user
 *.userosscache
 *.suo
@@ -19,30 +18,28 @@ bld/
 *.vbproj.user
 *.fsproj.user
 *.userprefs
+.vs/
 
-# Visual Studio Code files
+# VS Code
 .vscode/
 
-# ReSharper files
+# ReSharper
 _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 *.DotSettings
-*.userprefs
 
-# Build results
+# Артефакты сборки
 *.dll
 *.exe
 *.pdb
 *.mdb
 *.exe.config
-*.userprefs
 *.tmp
 *.log
 
-# OS generated files
+# ОС
 .DS_Store
-.DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
@@ -50,23 +47,26 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Environment specific settings
+# Окружение
 .env
 .env.local
 *.env.*
 
-# Testing
+# Тесты
 *.testresults
 *.trx
 
-# NuGet Packages
+# NuGet
 *.nupkg
 packages/
-```
-# Сгенерированные отчёты и тестовые артефакты
+
+# Скрипты установки SDK
+packages-microsoft-prod.deb
+packages-microsoft-prod.deb.*
+dotnet-install.sh
+
+# Сгенерированные отчёты и дампы
 Data/debug_report.txt
+Data/test_frame.txt
 debug_report.txt
 test_frame.txt
-bin/
-obj/
-*.log
