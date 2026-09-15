@@ -66,6 +66,8 @@ namespace AsciSurvival.Rendering
         private uint[] _colorGrid;  // 32-бит ARGB8888
         private float[] _brightnessBuffer;  // Буфер яркости для сглаживания 3x3
         private float[] _brightGrid;
+        private byte[] _winnerTypeGrid;   // 0=Plane, 1=Box, 2=Sphere, 255=None
+        private int[] _winnerIndexGrid;   // индекс в списке primitives, -1 при промахе
         
         /// <summary>
         /// Конструктор ASCII-рендерера с параметризуемым разрешением сетки.
@@ -81,6 +83,8 @@ namespace AsciSurvival.Rendering
             _colorGrid = new uint[size];
             _brightnessBuffer = new float[size];
             _brightGrid = new float[size];
+            _winnerTypeGrid = new byte[size];
+            _winnerIndexGrid = new int[size];
         }
         
         /// <summary>
@@ -94,6 +98,8 @@ namespace AsciSurvival.Rendering
                 _zBuffer[i] = float.MaxValue;
                 _symbolGrid[i] = ' ';
                 _colorGrid[i] = 0;
+                _winnerTypeGrid[i] = 255;
+                _winnerIndexGrid[i] = -1;
             }
         }
         
@@ -342,9 +348,11 @@ namespace AsciSurvival.Rendering
                     Color hitColor = Color.WHITE;
                     float hitBrightness = 1.0f;
                     PrimitiveType hitType = PrimitiveType.Plane;
+                    int hitIndex = -1;
 
-                    foreach (var prim in primitives)
+                    for (int pi = 0; pi < primitives.Count; pi++)
                     {
+                        var prim = primitives[pi];
                         RayTracing.HitResult hit = prim.Type switch
                         {
                             PrimitiveType.Box => RayTracing.RayAABB(rayOrigin, rayDir, prim.Position, prim.Size),
@@ -360,6 +368,7 @@ namespace AsciSurvival.Rendering
                             hitColor = prim.Color;
                             hitBrightness = prim.Brightness;
                             hitType = prim.Type;
+                            hitIndex = pi;
                         }
                     }
 
@@ -387,6 +396,8 @@ namespace AsciSurvival.Rendering
                         _zBuffer[index] = MathF.Min(minT, FarPlane);
                         _colorGrid[index] = GetCellColorWithFade(depthForFade, hitColor, finalBrightness);
                         _brightnessBuffer[index] = finalBrightness;
+                        _winnerTypeGrid[index] = hitType switch { PrimitiveType.Box => (byte)1, PrimitiveType.Sphere => (byte)2, PrimitiveType.Plane => (byte)0, _ => (byte)255 };
+                        _winnerIndexGrid[index] = hitIndex;
                     }
                     else
                     {
@@ -515,6 +526,26 @@ namespace AsciSurvival.Rendering
             if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
                 return ' ';
             return _symbolGrid[y * GridWidth + x];
+        }
+        
+        /// <summary>
+        /// Получить тип победителя для клетки (0=Plane, 1=Box, 2=Sphere, 255=None)
+        /// </summary>
+        public byte GetWinnerType(int x, int y)
+        {
+            if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+                return 255;
+            return _winnerTypeGrid[y * GridWidth + x];
+        }
+        
+        /// <summary>
+        /// Получить индекс победителя для клетки (-1 при промахе)
+        /// </summary>
+        public int GetWinnerIndex(int x, int y)
+        {
+            if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+                return -1;
+            return _winnerIndexGrid[y * GridWidth + x];
         }
         
         /// <summary>
