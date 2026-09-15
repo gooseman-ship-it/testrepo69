@@ -22,11 +22,14 @@ namespace AsciSurvival.Rendering
             string fontPath = ConfigManager.Graphics.FontPath;
             if (System.IO.File.Exists(fontPath) && fontPath.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
             {
-                _font = Raylib.LoadFontEx(fontPath, 6, null, 0);
+                int targetSize = Math.Max(4, 900 / 180);
+                _font = Raylib.LoadFontEx(fontPath, targetSize, null, 0);
+                Raylib.SetTextureFilter(_font.texture, TextureFilter.TEXTURE_FILTER_POINT);
             }
             else if (System.IO.File.Exists(fontPath))
             {
                 _font = Raylib.LoadFont(fontPath);
+                Raylib.SetTextureFilter(_font.texture, TextureFilter.TEXTURE_FILTER_POINT);
             }
             else
             {
@@ -86,7 +89,7 @@ namespace AsciSurvival.Rendering
             float cellHeight = (float)screenHeight / _core.GridHeight;
 
             // Размер шрифта подбирается из метрик шрифта, а не приравнивается к cellHeight
-            int fontSize = (int)MathF.Max(4f, cellHeight);
+            int fontSize = _font.baseSize;
 
             // Посимвольно: каждый символ рисуется точно в клетке (x*cellWidth, y*cellHeight).
             // Дефолтный шрифт Raylib не моноширинный, поэтому группировать нельзя —
