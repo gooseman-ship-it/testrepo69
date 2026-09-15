@@ -16,7 +16,7 @@ namespace AsciSurvival.Rendering
         
         public HeadlessRenderer()
         {
-            _core = new AsciiRenderCore();
+            _core = new AsciiRenderCore(320, 180);
             _camera = new Camera3D
             {
                 Position = new Vector3(0, 5, 15),
@@ -67,11 +67,11 @@ namespace AsciSurvival.Rendering
             primitives.Add(Primitive.CreateSphere(new Vector3(-8, 2, 8), 2f, Color.PURPLE, 1.0f));
             primitives.Add(Primitive.CreateSphere(new Vector3(8, 3, 5), 2.5f, Color.ORANGE, 1.0f));
             
-            Console.WriteLine("=== GAP PROBE: camera pos=<0,2,10>, pitch=-80, row=85, cols=70..90 ===");
+            Console.WriteLine("=== GAP PROBE: camera pos=<0,2,10>, pitch=-80, row=170, cols=140..180 ===");
             Console.WriteLine("Columns: rayDir.X,Y,Z | winner | t | symbol(code) | color(hex)");
             
-            int probeRow = 85;
-            for (int x = 70; x <= 90; x++)
+            int probeRow = 170;
+            for (int x = 140; x <= 180; x++)
             {
                 var (rayOrigin, rayDir) = RayTracing.BuildRayThroughCell(
                     x, probeRow, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
@@ -128,8 +128,8 @@ namespace AsciSurvival.Rendering
             Console.WriteLine("=== ZOND TABLE: 20 cells for camera pos=<0,2,10>, pitch=-80 ===");
             Console.WriteLine("Format: (x,y) | hit | t | normal(X,Y,Z) | lightDot | finalBrightness");
             
-            int[] probeXs = { 70, 75, 80, 85, 90 };
-            int[] probeYs = { 40, 45, 50, 55 };
+            int[] probeXs = { 140, 150, 160, 170, 180 };
+            int[] probeYs = { 80, 90, 100, 110 };
             
             foreach (int py in probeYs)
             {
@@ -182,26 +182,26 @@ namespace AsciSurvival.Rendering
                 }
             }
             
-            // Самотест согласованности базисов: проверка лучей клеток (120,45) и (40,45) при yaw=0
+            // Самотест согласованности базисов: проверка лучей клеток (240,90) и (80,90) при yaw=0
             Console.WriteLine("");
             Console.WriteLine("=== BASIS SELF-TEST ===");
             // При yaw=0 стрейф вправо = (-cos(0), 0, sin(0)) = (-1, 0, 0)
             Vector3 strafeRight = new Vector3(-1f, 0f, 0f);
             
             var (rayOrigin120, rayDir120) = RayTracing.BuildRayThroughCell(
-                120, 45, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
+                240, 90, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
             var (rayOrigin40, rayDir40) = RayTracing.BuildRayThroughCell(
-                40, 45, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
+                80, 90, _core.GridWidth, _core.GridHeight, probeCamera.Fovy, probeCamera);
             
             // Проекция луча на вектор стрейфа: dot(rayDir, strafeRight)
             float proj120 = Vector3.Dot(rayDir120, strafeRight);
             float proj40 = Vector3.Dot(rayDir40, strafeRight);
             
-            // Луч клетки (120,45) должен иметь положительную компоненту вдоль стрейфа вправо
-            // Луч клетки (40,45) должен иметь отрицательную компоненту
+            // Луч клетки (240,90) должен иметь положительную компоненту вдоль стрейфа вправо
+            // Луч клетки (80,90) должен иметь отрицательную компоненту
             bool basisOk = proj120 > 0f && proj40 < 0f;
-            Console.WriteLine($"Cell (120,45): rayDir=({rayDir120.X:F3},{rayDir120.Y:F3},{rayDir120.Z:F3}), proj_on_strafe={proj120:F3}");
-            Console.WriteLine($"Cell (40,45): rayDir=({rayDir40.X:F3},{rayDir40.Y:F3},{rayDir40.Z:F3}), proj_on_strafe={proj40:F3}");
+            Console.WriteLine($"Cell (240,90): rayDir=({rayDir120.X:F3},{rayDir120.Y:F3},{rayDir120.Z:F3}), proj_on_strafe={proj120:F3}");
+            Console.WriteLine($"Cell (80,90): rayDir=({rayDir40.X:F3},{rayDir40.Y:F3},{rayDir40.Z:F3}), proj_on_strafe={proj40:F3}");
             Console.WriteLine($"BASIS: {(basisOk ? "OK" : "NOK")}");
         }
         
