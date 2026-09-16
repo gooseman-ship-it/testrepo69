@@ -232,6 +232,64 @@ namespace AsciSurvival.Rendering
                     writer.WriteLine(line);
                 }
                 
+                // Секция GRID_W: типы победителей (P=Plane, B=Box, S=Sphere, N=None)
+                writer.WriteLine();
+                writer.WriteLine("GRID_W");
+                for (int y = 0; y < _core.GridHeight; y++)
+                {
+                    var line = "";
+                    for (int x = 0; x < _core.GridWidth; x++)
+                    {
+                        byte type = _core.GetWinnerType(x, y);
+                        char ch = type switch
+                        {
+                            0 => 'P',
+                            1 => 'B',
+                            2 => 'S',
+                            _ => 'N'
+                        };
+                        line += ch;
+                    }
+                    writer.WriteLine(line);
+                }
+                
+                // Секция GRID_I: индексы победителей (0..N-1 или . при -1)
+                writer.WriteLine();
+                writer.WriteLine("GRID_I");
+                for (int y = 0; y < _core.GridHeight; y++)
+                {
+                    var line = "";
+                    for (int x = 0; x < _core.GridWidth; x++)
+                    {
+                        int index = _core.GetWinnerIndex(x, y);
+                        line += index >= 0 ? $"{index % 10}" : ".";
+                    }
+                    writer.WriteLine(line);
+                }
+                
+                // Секция COUNTS: подсчёт типов по всей сетке
+                writer.WriteLine();
+                writer.WriteLine("COUNTS");
+                int countP = 0, countB = 0, countS = 0, countN = 0;
+                for (int y = 0; y < _core.GridHeight; y++)
+                {
+                    for (int x = 0; x < _core.GridWidth; x++)
+                    {
+                        byte type = _core.GetWinnerType(x, y);
+                        switch (type)
+                        {
+                            case 0: countP++; break;
+                            case 1: countB++; break;
+                            case 2: countS++; break;
+                            default: countN++; break;
+                        }
+                    }
+                }
+                writer.WriteLine($"P={countP}");
+                writer.WriteLine($"B={countB}");
+                writer.WriteLine($"S={countS}");
+                writer.WriteLine($"N={countN}");
+                
                 // Разделитель и информация о цветах (ARGB32)
                 writer.WriteLine(new string('-', _core.GridWidth));
                 writer.WriteLine("Color data (ARGB32 hex values):");
