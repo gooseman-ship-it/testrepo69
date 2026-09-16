@@ -43,7 +43,7 @@ namespace AsciSurvival.Rendering
         }
         
         /// <summary>
-        /// Зонд для отладки щели: камера pos=<0,2,10>, pitch=-80, строка 85, колонки 70..90
+        /// Зонд для отладки щели: камера pos=<0,2,10>, pitch=-80, строка 170, колонки 140..180
         /// Выводит таблицу: rayDir, победитель (тип или NONE), t, код символа, цвет hex
         /// </summary>
         public void RunGapProbe()
