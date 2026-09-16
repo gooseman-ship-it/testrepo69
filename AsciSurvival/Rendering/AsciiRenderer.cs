@@ -22,7 +22,7 @@ namespace AsciSurvival.Rendering
             string fontPath = ConfigManager.Graphics.FontPath;
             if (System.IO.File.Exists(fontPath) && fontPath.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
             {
-                int targetSize = Math.Max(4, 900 / 180);
+                int targetSize = Math.Max(4, Raylib.GetScreenHeight() / _core.GridHeight);
                 _font = Raylib.LoadFontEx(fontPath, targetSize, null, 0);
                 Raylib.SetTextureFilter(_font.texture, TextureFilter.TEXTURE_FILTER_POINT);
             }
