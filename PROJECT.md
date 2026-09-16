@@ -69,14 +69,14 @@
   push в main, артефакт AsciSurvival-win-x64; workflow не пересоздавать.
 
 ## 4. Структура проекта
-/AsciiSurvival
-├── /Core Game.cs, InputManager.cs, ConfigManager.cs
-├── /Rendering AsciiRenderer.cs, AsciiRenderCore.cs, RayTracing.cs, HeadlessRenderer.cs, Camera3D.cs
-├── /World ChunkManager.cs, TerrainGenerator.cs, Entity.cs
-├── /Gameplay Player.cs, Inventory.cs, Crafting.cs, Interaction.cs
-├── /UI UIManager.cs, MenuManager.cs
-├── /Data config.json, savegame.json, fonts/
-└── Program.cs
+/AsciiSurvival 
+├── /Core Game.cs, InputManager.cs, ConfigManager.cs 
+├── /Rendering AsciiRenderer.cs, AsciiRenderCore.cs, RayTracing.cs, HeadlessRenderer.cs, Camera3D.cs 
+├── /World ChunkManager.cs, TerrainGenerator.cs, Entity.cs 
+├── /Gameplay Player.cs, Inventory.cs, Crafting.cs, Interaction.cs 
+├── /UI UIManager.cs, MenuManager.cs 
+├── /Data config.json, savegame.json, fonts/ 
+└── Program.cs 
 
 ## 5. Правила для агента
 
@@ -280,13 +280,13 @@
 2.5. [ВЫПОЛНЕНО] Исправление камеры, пауза/инвентарь, миграция конфига.
 2.6. [ВЫПОЛНЕНО] Сплошные поверхности: per-cell raycasting с shading.
 2.7. [ВЫПОЛНЕНО] Полировка рендера:
-   * Клин у горизонта и кольца — фикс через DrawTextCodepoint.
-   * Фокус-гейт ввода — чтение при активном фокусе.
-2.8. [НЕ НАЧАТ] Удвоение плотности символов (сетка 320×180):
-   * TTF-шрифт через LoadFontEx с размером 5-6px; моноширинный
+  * Клин у горизонта и кольца — фикс через DrawTextCodepoint.
+  * Фокус-гейт ввода — чтение при активном фокусе. 
+2.8. [НЕ НАЧАТ] Удвоение плотности символов (сетка 320×180): 
+  * TTF-шрифт через LoadFontEx с размером 5-6px; моноширинный
      (обязательное условие корректности при любом способе отрисовки).
-   * Оптимизация отрисовки: замер 60 FPS на 1080p при 320×180.
-   * Обновление схемы отчётов: строки 180 или 320 символов.
+  * Оптимизация отрисовки: замер 60 FPS на 1080p при 320×180.
+  * Обновление схемы отчётов: строки 180 или 320 символов.
 3. Система освещения: источники света, затухание, тени по лучам.
 4. Генерация снежного горно-лесного мира.
 5. Статы выживания + HUD.
